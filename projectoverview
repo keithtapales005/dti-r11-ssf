@@ -1,0 +1,44 @@
+Project overview (May 20, 2026)
+
+Summary
+- Repository hosts a Next.js 16 app under frontend/ for the Shared Service Facilities UI.
+- backend/ exists but is empty (no server code yet).
+- Root has a README.md from create-next-app and a package-lock.json without a root package.json.
+
+Structure
+- frontend/ contains the Next.js app, Tailwind v4, ESLint, and TypeScript config.
+- frontend/src/app uses the App Router with route folders and shared UI components.
+- frontend/public includes branding and decorative assets (SSF/DTI logos, background, hexagons).
+
+Frontend (Next.js)
+- Framework: Next.js 16.2.4, React 19.2.4, TypeScript 5.
+- Styling: Tailwind CSS v4 (via @tailwindcss/postcss) plus globals in frontend/src/app/globals.css.
+- Fonts: Geist, Geist Mono, Inter, and IM Fell Great Primer set in layout.tsx.
+- Dependency note: @supabase/supabase-js is installed but not yet used in the UI files scanned.
+
+Routes (App Router)
+- / (frontend/src/app/page.tsx): simple landing shell rendering NavigationBar with a mock user.
+- /login-page: full-screen branded login view with mock auth, toasts, and form components.
+- /province-page: province dashboard with search, grid of ProvinceCard tiles, and mock data.
+- /project-page: projects list/cards grouped by year with filters, pagination, modal form, and mock CRUD.
+- /file-page: project file list with search, upload modal, delete action, and mock file data.
+- /account-page: account management table with filters, pagination, create/edit modal, and mock CRUD.
+
+Key components (frontend/src/app/components)
+- Navigation and layout: navigation-bar, footer, profile-badge.
+- Inputs and forms: input-field, upload-field, forms-container, dropdown, search-bar.
+- Feedback and actions: dynamic-buttons, dynamic-toast, status-badge.
+- Data display: project-card, project-card-details, province-card, pagination, table-header/body.
+- Icons: icons.tsx provides shared SVG icon components.
+
+Mock data and behavior
+- Most pages use in-memory arrays and simulated async functions (setTimeout) for create/update/delete.
+- Validation logic exists on account and project forms; errors are surfaced via toast notifications.
+
+Config and scripts
+- Scripts (frontend/package.json): dev, build, start, lint.
+- Next config uses the default empty NextConfig object (frontend/next.config.ts).
+
+Notes
+- Root-level npm install fails because package.json is inside frontend/.
+- backend/ is a placeholder for future server/API work.

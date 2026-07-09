@@ -1,327 +1,255 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
-// Global Shared Components
 import SearchBar from "@/app/components/search-bar";
-import Pagination from "@/app/components/pagination";
 import { DynamicButton } from "@/app/components/dynamic-buttons";
 import InputForms from "@/app/components/input-forms";
 import InputField from "@/app/components/input-field";
-import { ConfirmationModal } from "@/app/components/confirmation-modal";
-import { PlusIcon, ChevronLeftIcon } from "@/app/components/icons";
+import { PlusIcon } from "@/app/components/icons";
 import { ToastContainer, type ToastProps } from "@/app/components/dynamic-toast";
-import Footer from "@/app/components/footer";
 import Dropdown, { DropdownOption } from "@/app/components/dropdown";
-import StatusBadge, { type StatusBadgeProps, STATUS_CONFIG } from "@/app/components/status-badge";
-
-export type ProjectStatus = StatusBadgeProps["status"];
-
-export const STATUS_OPTIONS = Object.keys(STATUS_CONFIG) as ProjectStatus[];
 
 import ProjectListTable from "../../components/project-list-table";
 
-export interface Project {
-  id: string;
-  year: number;
-  ssfNumber: string;
-  businessName: string;
-  projectTitle: string;
-  filesCount: number;
-  status: ProjectStatus;
-  lastUpdatedBy: string;
-  lastUpdatedAt: string;
-}
-
-// Mock Array Data - Implement backend integration and dynamic fetching logic as needed.
-const MOCK_PROJECT_DATA: Project[] = [
-  {
-    id: "1",
-    year: 2013,
-    ssfNumber: "2013-XI-DVO-0001",
-    businessName: "Davao City Chamber of Commerce and Industry, Inc.",
-    projectTitle: "SSF-Enterprise Development Center",
-    filesCount: 12,
-    status: "Ongoing",
-    lastUpdatedBy: "Superadmin Account",
-    lastUpdatedAt: "May 23, 2026 - 10:00AM",
-  },
-  {
-    id: "2",
-    year: 2024,
-    ssfNumber: "2024-XI-DVO-0042",
-    businessName: "UP Mindanao Food Processing Facility",
-    projectTitle: "Shared Service Facility for Food Innovation",
-    filesCount: 4,
-    status: "Established - Operational",
-    lastUpdatedBy: "Admin User",
-    lastUpdatedAt: "Jun 12, 2026 - 02:30PM",
-  },
-];
+import { useProjects } from "@/lib/queries/projectQueries";
+import { useCreateProject } from "@/lib/mutations/projectMutation";
+import { useProvinces } from "@/lib/queries/provinceQueries";
+import { useProjectStatuses } from "@/lib/queries/projectStatusQueries";
+import { useCurrentUser } from "@/lib/hooks/useAuth";
 
 export default function ProjectPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const provinceName = searchParams.get("province") || "Davao City";
 
-  const [projects, setProjects] = useState<Project[]>(MOCK_PROJECT_DATA);
+  const { data: currentUser } = useCurrentUser();
+  const { data: projectsResponse, isLoading: projectsLoading } = useProjects(1, 50);
+  const { data: provinces } = useProvinces();
+  const { data: statuses } = useProjectStatuses();
+  const createProject = useCreateProject();
+
+  const projects = projectsResponse?.data ?? [];
+
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [yearFilter, setYearFilter] = useState<string>("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
-  const [currentPage, setCurrentPage] = useState<number>(1);
   const [selectedStatus, setSelectedStatus] = useState<string | number>();
   const [selectedYear, setSelectedYear] = useState<string | number>();
-  const [year, setYear] = useState("");
-const [region, setRegion] = useState("XI");
-const [province, setProvince] = useState("");
-const [number, setNumber] = useState("");
-const [businessName, setBusinessName] = useState("");
-const [projectTitle, setProjectTitle] = useState("");
-const [proposedBy, setProposedBy] = useState("");
-const [status, setStatus] = useState("Proposed");
-const [projectCost, setProjectCost] = useState("");
+  const [toasts, setToasts] = useState<ToastProps[]>([]);
 
-  const statusOptions: DropdownOption[] = [
-  { id: "all", label: "All Status", value: "all" },
-  { id: "ongoing", label: "Ongoing", value: "Ongoing" },
-  { id: "established", label: "Currently Established", value: "Currently Established" },
-  { id: "operational", label: "Established - Operational", value: "Established - Operational" },
-  { id: "partial", label: "Established - Partially Operational", value: "Established - Partially Operational" },
-  { id: "nonoperational", label: "Established - Non-Operational", value: "Established - Non-Operational" },
-  { id: "extended", label: "Extended", value: "Extended" },
-  { id: "transferred", label: "Transferred", value: "Transferred" },
-  { id: "fulltransferred", label: "Fully Transferred", value: "Fully Transferred" },
-  { id: "disposed", label: "Disposed", value: "Disposed" },
-  { id: "approval", label: "For Approval", value: "For Approval" },
-  ];
+  const [provinceId, setProvinceId] = useState<number | undefined>();
+  const [ssfNumber, setSsfNumber] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [projectTitle, setProjectTitle] = useState("");
+  const [proposedBy, setProposedBy] = useState("");
+  const [statusId, setStatusId] = useState<number | undefined>();
 
-// Sample. Accomodate for all years
-  const yearOptions: DropdownOption[] = [
-    { id: 2026, label: "2026", value: 2026 },
-    { id: 2025, label: "2025", value: 2025 },
-    { id: 2024, label: "2024", value: 2024 },
-  ];
+  const addToast = useCallback((toast: Omit<ToastProps, "id">) => {
+    const id = `${Date.now()}-${Math.random()}`;
+    setToasts((prev) => [...prev, { ...toast, id }]);
+    return id;
+  }, []);
+
+  const removeToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const statusOptions: DropdownOption[] = useMemo(
+    () =>
+      (statuses ?? []).map((s: any) => ({
+        id: s.project_status_id,
+        label: s.status_name,
+        value: s.project_status_id,
+      })),
+    [statuses]
+  );
+
+  const provinceOptions: DropdownOption[] = useMemo(
+    () =>
+      (provinces ?? []).map((p: any) => ({
+        id: p.province_id,
+        label: p.province_name,
+        value: p.province_id,
+      })),
+    [provinces]
+  );
+
   const filteredProjects = useMemo(() => {
-  return projects.filter((project) => {
-    const matchesSearch =
-      searchQuery.trim() === "" ||
-      project.ssfNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.businessName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      project.projectTitle.toLowerCase().includes(searchQuery.toLowerCase());
+    return projects.filter((project: any) => {
+      const matchesSearch =
+        searchQuery.trim() === "" ||
+        project.ssf_number?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        project.business_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        project.project_title?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesStatus =
-      !selectedStatus ||
-      selectedStatus === "all" ||
-      project.status === selectedStatus;
+      const matchesStatus =
+        !selectedStatus || selectedStatus === "all" || project.project_status_id === selectedStatus;
 
-    const matchesYear =
-      !selectedYear ||
-      project.year === Number(selectedYear);
+      return matchesSearch && matchesStatus;
+    });
+  }, [projects, searchQuery, selectedStatus]);
 
-    return matchesSearch && matchesStatus && matchesYear;
-  });
-}, [projects, searchQuery, selectedStatus, selectedYear]);
-
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    setCurrentPage(1); // Always reset page bounds to index 1 on key mutations
-  };
-
-  const handleYearChange = (year: string) => {
-    setYearFilter(year);
-    setCurrentPage(1);
-  };
-
-  const handleStatusChange = (status: string) => {
-    setStatusFilter(status);
-    setCurrentPage(1);
-  };
-
-  const handleOpenAddModal = () => {
-    setIsAddModalOpen(true);
-    alert("Add Project layout activation intercept triggered! Wire your custom modal here.");
-  };
+  const handleSearch = (query: string) => setSearchQuery(query);
 
   const handleNavigateToDetails = (ssfNumber: string) => {
-    // Encodes spaces/special characters to match cleaner path parameter constraints
     router.push(`/projects/${encodeURIComponent(ssfNumber)}`);
   };
 
+  const handleSubmit = () => {
+    if (!provinceId || !statusId || !ssfNumber || !businessName || !projectTitle) {
+      addToast({
+        type: "warning",
+        title: "Missing Fields",
+        description: "Please fill in all required fields.",
+        duration: 3000,
+      });
+      return;
+    }
+
+    createProject.mutate(
+      {
+        province_id: provinceId,
+        created_by: currentUser?.user_id,
+        project_status_id: statusId,
+        ssf_number: ssfNumber,
+        business_name: businessName,
+        project_title: projectTitle,
+        proposed_by: proposedBy || undefined,
+      },
+      {
+        onSuccess: () => {
+          addToast({
+            type: "success",
+            title: "Project Created",
+            description: "The project was added successfully.",
+            duration: 3000,
+          });
+          setIsAddModalOpen(false);
+          setProvinceId(undefined);
+          setSsfNumber("");
+          setBusinessName("");
+          setProjectTitle("");
+          setProposedBy("");
+          setStatusId(undefined);
+        },
+        onError: (error: any) => {
+          addToast({
+            type: "error",
+            title: "Failed to Create Project",
+            description: error?.message || "Something went wrong.",
+            duration: 3000,
+          });
+        },
+      }
+    );
+  };
+
   return (
-  <>
-    <div className="w-full min-h-screen bg-linear-to-b from-[#C8DBFD] to-[#F5F8FC] p-6">
-      <div className="max-w-[1250px] mx-auto space-y-6">
-        
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-primary-blue">
-            Provinces &gt; <span>{provinceName}</span>
-          </h1>
-        </div>
+    <>
+      <div className="w-full min-h-screen bg-linear-to-b from-[#C8DBFD] to-[#F5F8FC] p-6">
+        <div className="max-w-[1250px] mx-auto space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-3xl font-bold text-primary-blue">
+              Provinces &gt; <span>{provinceName}</span>
+            </h1>
+          </div>
 
-        <SearchBar
-          onSearch={handleSearch}
-          placeholder="Search projects..."
-        />
+          <SearchBar onSearch={handleSearch} placeholder="Search projects..." />
 
-        <div className="flex items-center justify-between">
-          <div className="flex gap-3">
-            <Dropdown
-              options={statusOptions}
-              placeholder="Status"
-              selectedValue={selectedStatus}
-              onSelect={(option) => setSelectedStatus(option.value)}
-            />
+          <div className="flex items-center justify-between">
+            <div className="flex gap-3">
+              <Dropdown
+                options={statusOptions}
+                placeholder="Status"
+                selectedValue={selectedStatus}
+                onSelect={(option) => setSelectedStatus(option.value)}
+              />
+            </div>
 
-            <Dropdown
-              options={yearOptions}
-              placeholder="Year"
-              selectedValue={selectedYear}
-              onSelect={(option) => setSelectedYear(option.value)}
+            <DynamicButton
+              label="Add Project"
+              variant="blue"
+              icon={<PlusIcon size={16} stroke="#FEFEFE" strokeWidth={2} />}
+              iconPosition="left"
+              onClick={() => setIsAddModalOpen(true)}
             />
           </div>
 
-          <DynamicButton
-            label="Add Project"
-            variant="blue"
-            icon={<PlusIcon size={16} stroke="#FEFEFE" strokeWidth={2} />}
-            iconPosition="left"
-            onClick={() => setIsAddModalOpen(true)}
-          />
-        </div>
-
-        {/* Table */}
-        <div className="bg-white rounded-lg shadow-xs overflow-hidden">
-          <ProjectListTable
-            projects={filteredProjects}
-            onViewProject={handleNavigateToDetails}
-            variant="string"
-          />
+          <div className="bg-white rounded-lg shadow-xs overflow-hidden">
+            {projectsLoading ? (
+              <div className="p-8 text-center text-gray-500">Loading projects...</div>
+            ) : (
+              <ProjectListTable
+                projects={filteredProjects}
+                onViewProject={handleNavigateToDetails}
+                variant="string"
+              />
+            )}
+          </div>
         </div>
       </div>
-    </div>
 
-    {/* ADD PROJECT MODAL */}
-    {isAddModalOpen && (
-  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-    <InputForms
-      title="New Project"
-      onCancel={() => setIsAddModalOpen(false)}
-      onSecondaryAction={() => setIsAddModalOpen(false)}
-      secondaryButtonLabel="Cancel"
-      buttonLabel="Add Project"
-      onSubmit={() => {
-      const newProject: Project = {
-        id: Date.now().toString(),
-        year: Number(year),
-        ssfNumber: `${year}-${region}-${province}-${number}`,
-        businessName,
-        projectTitle,
-        filesCount: 0,
-        status: status as ProjectStatus,
-        lastUpdatedBy: "Current User",
-        lastUpdatedAt: new Date().toLocaleString(),
-      };
+      {isAddModalOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <InputForms
+            title="New Project"
+            onCancel={() => setIsAddModalOpen(false)}
+            onSecondaryAction={() => setIsAddModalOpen(false)}
+            secondaryButtonLabel="Cancel"
+            buttonLabel={createProject.isPending ? "Adding..." : "Add Project"}
+            onSubmit={handleSubmit}
+          >
+            <Dropdown
+              options={provinceOptions}
+              placeholder="Select Province"
+              selectedValue={provinceId}
+              onSelect={(option) => setProvinceId(Number(option.value))}
+            />
 
-      setProjects((prev) => [...prev, newProject]);
+            <InputField
+              label="SSF Number"
+              name="ssfNumber"
+              placeholder="e.g. 2026-XI-DVO-0001"
+              value={ssfNumber}
+              onChange={setSsfNumber}
+            />
 
-      setIsAddModalOpen(false);
+            <InputField
+              label="Business Name"
+              name="businessName"
+              placeholder="Enter business name"
+              value={businessName}
+              onChange={setBusinessName}
+            />
 
-      // Optional: clear fields
-      setYear("");
-      setRegion("XI");
-      setProvince("");
-      setNumber("");
-      setBusinessName("");
-      setProjectTitle("");
-      setProposedBy("");
-      setStatus("Proposed");
-      setProjectCost("");
-    }}
-    >
-      <div className="grid grid-cols-2 gap-4">
-        <InputField
-          label="Year"
-          name="year"
-          placeholder="YYYY"
-          value={year}
-          onChange={setYear}
-        />
+            <InputField
+              label="Project Title"
+              name="projectTitle"
+              placeholder="Enter project title"
+              value={projectTitle}
+              onChange={setProjectTitle}
+            />
 
-        <InputField
-          label="Region"
-          name="region"
-          placeholder="XI"
-          value={region}
-          onChange={setRegion}
-        />
-      </div>
+            <InputField
+              label="Proposed By"
+              name="proposedBy"
+              placeholder="Enter name (optional)"
+              value={proposedBy}
+              onChange={setProposedBy}
+            />
 
-      <div className="grid grid-cols-2 gap-4">
-        <InputField
-          label="Province"
-          name="province"
-          placeholder="Province"
-          value={province}
-          onChange={setProvince}
-        />
+            <Dropdown
+              options={statusOptions}
+              placeholder="Select Status"
+              selectedValue={statusId}
+              onSelect={(option) => setStatusId(Number(option.value))}
+            />
+          </InputForms>
+        </div>
+      )}
 
-        <InputField
-          label="Number"
-          name="number"
-          placeholder="XXXX"
-          value={number}
-          onChange={setNumber}
-        />
-      </div>
-
-      <InputField
-        label="Business Name"
-        name="businessName"
-        placeholder="Enter business name"
-        value={businessName}
-        onChange={setBusinessName}
-      />
-
-      <InputField
-        label="Project Title"
-        name="projectTitle"
-        placeholder="Enter project title"
-        value={projectTitle}
-        onChange={setProjectTitle}
-      />
-
-      <InputField
-        label="Proposed By"
-        name="proposedBy"
-        placeholder="Enter name"
-        value={proposedBy}
-        onChange={setProposedBy}
-      />
-
-      <div className="grid grid-cols-2 gap-4">
-        <InputField
-          label="Status"
-          name="status"
-          placeholder="Proposed"
-          value={status}
-          onChange={setStatus}
-        />
-
-        <InputField
-          label="Project Cost"
-          name="projectCost"
-          placeholder="Enter amount"
-          value={projectCost}
-          onChange={setProjectCost}
-          type="number"
-        />
-      </div>
-    </InputForms>
-  </div>
-    )}
-  </>
-);
+      <ToastContainer toasts={toasts} position="top-right" onRemoveToast={removeToast} />
+    </>
+  );
 }

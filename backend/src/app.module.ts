@@ -7,6 +7,9 @@ import { AuthModule } from './auth/auth.module';
 import { DepartmentModule } from './department/department.module';
 import { AccessModule } from './access/access.module';
 import { ProjectManagementModule } from './project_management/project_management.module';
+import { ProjectSupplyModule } from './project_supply/project_supply.module';
+import { ProjectConcernModule } from './project_concern/project_concern.module';
+import { ProjectStatusModule } from './project_status/project_status.module';
 import { ProvinceService } from './province/province.service';
 import { ProvinceController } from './province/province.controller';
 import { ProvinceModule } from './province/province.module';
@@ -28,6 +31,9 @@ import { AuditModule } from './audit/audit.module';
     StatusTypeModule,
     StatusStageModule,
     ProjectManagementModule,
+    ProjectSupplyModule,
+    ProjectConcernModule,
+    ProjectStatusModule,
     ApprovedProjectModule,
     AuditModule,
   ],

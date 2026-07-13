@@ -5,7 +5,7 @@ import StatusBadge from "./status-badge";
 
 interface ProjectListTableProps {
     projects: Project[];
-    onViewProject: (ssfNumber: string) => void;
+    onViewProject: (id: number) => void;
     variant: string;
 }
 
@@ -38,7 +38,7 @@ export default function ProjectListTable({ projects, onViewProject }: ProjectLis
                             >
                                 <td className="p-4 font-bold text-secondary-blue whitespace-nowrap">
                                     <span
-                                        onClick={() => onViewProject(project.ssf_number)}
+                                        onClick={() => onViewProject(project.project_id)}
                                         className="cursor-pointer hover:underline underline-offset-2 hover:text-blue-700"
                                     >
                                         {project.ssf_number}
@@ -68,7 +68,7 @@ export default function ProjectListTable({ projects, onViewProject }: ProjectLis
 
                                 <td className="p-4 text-right whitespace-nowrap">
                                     <button
-                                        onClick={() => onViewProject(project.ssf_number)}
+                                        onClick={() => onViewProject(project.project_id)}
                                         className="inline-flex items-center gap-1 text-xs font-bold text-[#182286] bg-slate-50 border border-slate-200 group-hover:bg-[#182286] group-hover:text-white group-hover:border-[#182286] px-3 py-1.5 rounded-md transition-all duration-200 shadow-2xs"
                                     >
                                         View Details

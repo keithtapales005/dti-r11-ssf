@@ -38,8 +38,10 @@ export default function ProjectPage() {
   const [selectedYear, setSelectedYear] = useState<string | number>();
   const [toasts, setToasts] = useState<ToastProps[]>([]);
 
+  const [year, setYear] = useState("");
+  const [region, setRegion] = useState("XI");
   const [provinceId, setProvinceId] = useState<number | undefined>();
-  const [ssfNumber, setSsfNumber] = useState("");
+  const [number, setNumber] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [projectTitle, setProjectTitle] = useState("");
   const [proposedBy, setProposedBy] = useState("");
@@ -92,12 +94,15 @@ export default function ProjectPage() {
 
   const handleSearch = (query: string) => setSearchQuery(query);
 
-  const handleNavigateToDetails = (ssfNumber: string) => {
-    router.push(`/projects/${encodeURIComponent(ssfNumber)}`);
-  };
+  const handleNavigateToDetails = (id: number) => {
+    router.push(`/projects/${id}`);
+};
 
   const handleSubmit = () => {
-    if (!provinceId || !statusId || !ssfNumber || !businessName || !projectTitle) {
+    const selectedProvince = (provinces ?? []).find((p: any) => p.province_id === provinceId);
+    const ssfNumber = `${year}-${region}-${selectedProvince?.province_name ?? ""}-${number}`;
+
+    if (!year || !provinceId || !statusId || !number || !businessName || !projectTitle) {
       addToast({
         type: "warning",
         title: "Missing Fields",
@@ -126,8 +131,10 @@ export default function ProjectPage() {
             duration: 3000,
           });
           setIsAddModalOpen(false);
+          setYear("");
+          setRegion("XI");
           setProvinceId(undefined);
-          setSsfNumber("");
+          setNumber("");
           setBusinessName("");
           setProjectTitle("");
           setProposedBy("");
@@ -194,26 +201,52 @@ export default function ProjectPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <InputForms
             title="New Project"
+            width="420px"
+            height="auto"
             onCancel={() => setIsAddModalOpen(false)}
             onSecondaryAction={() => setIsAddModalOpen(false)}
             secondaryButtonLabel="Cancel"
             buttonLabel={createProject.isPending ? "Adding..." : "Add Project"}
             onSubmit={handleSubmit}
           >
-            <Dropdown
-              options={provinceOptions}
-              placeholder="Select Province"
-              selectedValue={provinceId}
-              onSelect={(option) => setProvinceId(Number(option.value))}
-            />
+            <div className="text-sm font-semibold text-[#182286]">SSF Number Details</div>
 
-            <InputField
-              label="SSF Number"
-              name="ssfNumber"
-              placeholder="e.g. 2026-XI-DVO-0001"
-              value={ssfNumber}
-              onChange={setSsfNumber}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <InputField
+                label="Year"
+                name="year"
+                placeholder="YYYY"
+                value={year}
+                onChange={setYear}
+                maxLength={4}
+              />
+              <InputField
+                label="Region"
+                name="region"
+                placeholder="XI"
+                value={region}
+                onChange={setRegion}
+                disabled
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <Dropdown
+                variant="secondary"
+                label="Province"
+                options={provinceOptions}
+                selectedValue={provinceId}
+                onSelect={(option) => setProvinceId(Number(option.value))}
+                placeholder="Province"
+              />
+              <InputField
+                label="Number"
+                name="number"
+                placeholder="XXXX"
+                value={number}
+                onChange={setNumber}
+              />
+            </div>
 
             <InputField
               label="Business Name"
@@ -240,10 +273,12 @@ export default function ProjectPage() {
             />
 
             <Dropdown
+              variant="secondary"
+              label="Status"
               options={statusOptions}
-              placeholder="Select Status"
               selectedValue={statusId}
               onSelect={(option) => setStatusId(Number(option.value))}
+              placeholder="Status"
             />
           </InputForms>
         </div>

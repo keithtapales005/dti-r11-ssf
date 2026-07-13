@@ -11,6 +11,7 @@ interface InputFormsProps {
   onSecondaryAction?: () => void;
   showCloseButton?: boolean;
   width?: string;
+  height?: string;
   buttonLabel?: string;
   secondaryButtonLabel?: string;
   secondaryButtonVariant?: "white" | "red";
@@ -29,6 +30,7 @@ export default function InputForms({
   onSecondaryAction,
   showCloseButton = true,
   width = "666px",
+  height = "680px",
   buttonLabel,
   secondaryButtonLabel,
   secondaryButtonVariant = "white",
@@ -47,7 +49,7 @@ export default function InputForms({
       style={{
         width,
         maxWidth: "560px",
-        height: "680px",
+        height,
         padding: "28px 22px",
         borderRadius: "10px",
         background: "#FDFDFD",

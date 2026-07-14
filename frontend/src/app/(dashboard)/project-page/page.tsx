@@ -77,6 +77,10 @@ export default function ProjectPage() {
     [provinces]
   );
 
+  const currentProvinceId = useMemo(() => {
+    return (provinces ?? []).find((p: any) => p.province_name === provinceName)?.province_id;
+  }, [provinces, provinceName]);
+
   const filteredProjects = useMemo(() => {
     return projects.filter((project: any) => {
       const matchesSearch =
@@ -88,9 +92,12 @@ export default function ProjectPage() {
       const matchesStatus =
         !selectedStatus || selectedStatus === "all" || project.project_status_id === selectedStatus;
 
-      return matchesSearch && matchesStatus;
+      const matchesProvince =
+        !currentProvinceId || project.province_id === currentProvinceId;
+
+      return matchesSearch && matchesStatus && matchesProvince;
     });
-  }, [projects, searchQuery, selectedStatus]);
+  }, [projects, searchQuery, selectedStatus, currentProvinceId]);
 
   const handleSearch = (query: string) => setSearchQuery(query);
 

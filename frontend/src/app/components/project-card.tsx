@@ -7,6 +7,7 @@ import { DynamicButton } from "@/app/components/dynamic-buttons";
 import StatusBadge from "@/app/components/status-badge";
 
 export interface ProjectCardProps {
+  projectId: number;
   provinceName: string;
   ssfNumber: string;
   businessName: string;
@@ -27,6 +28,7 @@ export interface ProjectCardProps {
 }
 
 export const ProjectCard: React.FC<ProjectCardProps> = ({
+  projectId,
   provinceName,
   ssfNumber = "year-XI-DVC-0000", // Placeholder for backend readiness
   businessName,
@@ -47,7 +49,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
     }
 
     router.push(
-      `/file-page?province=${encodeURIComponent(provinceName)}&ssfNumber=${encodeURIComponent(ssfNumber)}&businessName=${encodeURIComponent(businessName)}&projectTitle=${encodeURIComponent(projectTitle)}&status=${encodeURIComponent(status)}&filesCount=${filesCount}`,
+      `/file-page?projectId=${projectId}&province=${encodeURIComponent(provinceName)}&ssfNumber=${encodeURIComponent(ssfNumber)}&businessName=${encodeURIComponent(businessName)}&projectTitle=${encodeURIComponent(projectTitle)}&status=${encodeURIComponent(status)}&filesCount=${filesCount}`,
     );
   };
 

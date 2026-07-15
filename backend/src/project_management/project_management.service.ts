@@ -16,6 +16,10 @@ export class ProjectManagementService {
                 ssf_number: createProjectDto.ssf_number,
                 business_name: createProjectDto.business_name,
                 project_title: createProjectDto.project_title,
+                year_launched: createProjectDto.year_launched,
+                date_established: createProjectDto.date_established,
+                industry: createProjectDto.industry,
+                project_cost: createProjectDto.project_cost,
             },
         ]).select()
         .single();

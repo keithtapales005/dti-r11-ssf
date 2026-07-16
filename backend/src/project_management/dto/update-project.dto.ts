@@ -4,7 +4,9 @@ import {
   MaxLength,
   IsInt,
   IsNotEmpty,
-  IsOptional
+  IsOptional,
+  IsNumber,
+  IsDateString,
 } from 'class-validator';
 export class UpdateProjectDto {
     @IsOptional()
@@ -30,4 +32,20 @@ export class UpdateProjectDto {
     @IsOptional()
     @IsString()
     project_title!: string;
+
+    @IsOptional()
+    @IsInt()
+    year_launched?: number;
+
+    @IsOptional()
+    @IsDateString()
+    date_established?: string;
+
+    @IsOptional()
+    @IsString()
+    industry?: string;
+
+    @IsOptional()
+    @IsNumber()
+    project_cost?: number;
 }

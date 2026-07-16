@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import SearchBar from "../../components/search-bar";
 import ProfileBadge from "../../components/profile-badge";
 import Pagination from "../../components/pagination";
@@ -10,7 +10,14 @@ import InputForms from "../../components/input-forms";
 import ConfirmationModal from "../../components/confirmation-modal";
 import { PlusIcon, XIcon } from "../../components/icons";
 import { ToastContainer, type ToastProps } from "../../components/dynamic-toast";
-import { createUser, updateUser, getUsers} from "../../../lib/api/user";
+import {
+  useUsers,
+  useCreateUser,
+  useEditUser,
+  useDeleteUser,
+  useApproveUser,
+  useRejectUser,
+} from "../../../lib/hooks/useUser";
 
 const ROLE_MAP = {
   Admin: 2,
@@ -29,13 +36,11 @@ const DEPARTMENT_MAP = {
   "Davao de Oro Provincial Office": 9,
 } as const;
 
-
-
 // ------------------------------------------------------------------
 // Types
 // ------------------------------------------------------------------
 type Permission = "Viewer" | "Admin";
-type AccessStatus = "Active" | "Blocked";
+type AccessStatus = "Active" | "Blocked" | "Deleted" | "Pending Verification" | "Unknown";
 
 type SaveConfirmation = {
   title: string;
@@ -58,7 +63,6 @@ type AccountRecord = {
   access: AccessStatus;
 };
 
-
 const DEPARTMENT_OPTIONS = [
   "Regional Office",
   "Assistant Regional Office",
@@ -72,7 +76,6 @@ const DEPARTMENT_OPTIONS = [
 ];
 
 const PERMISSION_OPTIONS: Permission[] = ["Viewer", "Admin"];
-
 
 function normalize(text: string) {
   return text.trim().toLowerCase();
@@ -126,7 +129,7 @@ function validateAccountForm(
 }
 
 // ------------------------------------------------------------------
-// Filter options for dropdowns (Permission and Department only)
+// Filter options for dropdowns
 // ------------------------------------------------------------------
 const PERMISSION_FILTER_OPTIONS: DropdownOption[] = [
   { id: "all", label: "All Permissions", value: "" },
@@ -138,6 +141,7 @@ const ACCESS_FILTER_OPTIONS: DropdownOption[] = [
   { id: "all", label: "All Access", value: "" },
   { id: "active", label: "Active", value: "Active" },
   { id: "blocked", label: "Blocked", value: "Blocked" },
+  { id: "pending", label: "Pending Verification", value: "Pending Verification" },
 ];
 
 const DEPARTMENT_FILTER_OPTIONS: DropdownOption[] = [
@@ -168,51 +172,43 @@ const PencilIcon = ({ size = 16, stroke = "#2563EB" }) => (
 // ------------------------------------------------------------------
 
 export default function AccountPage() {
+  // Data fetching (React Query)
+  const { data: rawUsers = [], isLoading: usersLoading } = useUsers();
 
-    // Data states
-  const [accounts, setAccounts] = useState<AccountRecord[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [paginationKey, setPaginationKey] = useState(0);
+  const createUserMutation = useCreateUser();
+  const editUserMutation = useEditUser();
+  const deleteUserMutation = useDeleteUser();
+  const approveUserMutation = useApproveUser();
+  const rejectUserMutation = useRejectUser();
 
-  const loadUsers = useCallback(async () => {
-  try {
-    const users = await getUsers();
+  const roleMap: Record<number, Permission> = { 2: "Admin", 3: "Viewer" };
 
-    const roleMap: Record<number, Permission> = {
-      2: "Admin",
-      3: "Viewer",
-    };
-
-    const mapped: AccountRecord[] = users
-      .map((u: any) => ({
+  const accounts: AccountRecord[] = useMemo(() => {
+    return rawUsers
+      .map((u: any): AccountRecord => ({
         id: String(u.user_id),
         firstName: u.first_name ?? "",
         lastName: u.last_name ?? "",
         username: u.username ?? "",
-        department: u.department?.department_name ?? "Unknown",
+        department: u.department?.department_name ?? "Unassigned",
         permission: roleMap[u.role_id] ?? "Viewer",
         isOnline: false,
-        access: u.user_status?.user_status_name ?? "Blocked",
+        access: (u.user_status?.user_status_name as AccessStatus) ?? "Unknown",
       }))
       .sort((a, b) => Number(b.id) - Number(a.id));
+  }, [rawUsers]);
 
-    setAccounts(mapped);
-  } catch (error) {
-    console.error(error);
-  }
-}, []);
+  // UI states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [paginationKey, setPaginationKey] = useState(0);
 
-useEffect(() => {
-  loadUsers();
-}, [loadUsers]);
-
-  // Filter states (only Permission and Department)
+  // Filter states
   const [permissionFilter, setPermissionFilter] = useState<string>("");
   const [departmentFilter, setDepartmentFilter] = useState<string>("");
   const [accessFilter, setAccessFilter] = useState<string>("");
 
-  // Modal states
+  // Create/Edit modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [modalLoading, setModalLoading] = useState(false);
@@ -229,7 +225,17 @@ useEffect(() => {
       message: "",
     });
 
-  // Modal form states
+  // Approve modal state
+  const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
+  const [approvingAccount, setApprovingAccount] = useState<AccountRecord | null>(null);
+  const [approveFormData, setApproveFormData] = useState({ department: "", permission: "" });
+  const [approveFormErrors, setApproveFormErrors] = useState<Record<string, string>>({});
+
+  // Reject confirmation state
+  const [isRejectConfirmOpen, setIsRejectConfirmOpen] = useState(false);
+  const [rejectingAccount, setRejectingAccount] = useState<AccountRecord | null>(null);
+
+  // Modal form states (create/edit)
   const [modalFormData, setModalFormData] = useState<Record<string, string>>({
     firstName: "",
     lastName: "",
@@ -340,7 +346,7 @@ useEffect(() => {
       confirmPassword: "",
       department: account.department,
       permission: account.permission,
-      access: account.access,
+      access: account.access === "Active" ? "Active" : "Blocked",
     });
     setModalFormErrors({});
     setModalKey((k) => k + 1);
@@ -398,6 +404,31 @@ useEffect(() => {
   const closeDeleteConfirmation = useCallback(() => {
     setIsDeleteConfirmOpen(false);
     setDeleteConfirmation({ title: "", message: "" });
+  }, []);
+
+  // Approve / Reject open-close handlers
+  const openApproveModal = useCallback((account: AccountRecord) => {
+    setApprovingAccount(account);
+    setApproveFormData({ department: "", permission: "" });
+    setApproveFormErrors({});
+    setIsApproveModalOpen(true);
+  }, []);
+
+  const closeApproveModal = useCallback(() => {
+    setIsApproveModalOpen(false);
+    setApprovingAccount(null);
+    setApproveFormData({ department: "", permission: "" });
+    setApproveFormErrors({});
+  }, []);
+
+  const openRejectConfirmation = useCallback((account: AccountRecord) => {
+    setRejectingAccount(account);
+    setIsRejectConfirmOpen(true);
+  }, []);
+
+  const closeRejectConfirmation = useCallback(() => {
+    setIsRejectConfirmOpen(false);
+    setRejectingAccount(null);
   }, []);
 
   const handleModalFormChange = useCallback(
@@ -497,46 +528,48 @@ useEffect(() => {
     setModalLoading(true);
     try {
       if (editingId) {
-  await updateUser(editingId, {
-    username: modalFormData.username,
-    first_name: modalFormData.firstName,
-    last_name: modalFormData.lastName,
-    role_id: ROLE_MAP[modalFormData.permission as keyof typeof ROLE_MAP],
-    department_id:
-      DEPARTMENT_MAP[
-        modalFormData.department as keyof typeof DEPARTMENT_MAP
-      ],
-    user_status_id: modalFormData.access === "Active" ? 1 : 2,
-  });
+        await editUserMutation.mutateAsync({
+          id: Number(editingId),
+          dto: {
+            username: modalFormData.username,
+            first_name: modalFormData.firstName,
+            last_name: modalFormData.lastName,
+            role_id: ROLE_MAP[modalFormData.permission as keyof typeof ROLE_MAP],
+            department_id:
+              DEPARTMENT_MAP[
+              modalFormData.department as keyof typeof DEPARTMENT_MAP
+              ],
+            user_status_id: modalFormData.access === "Active" ? 1 : 2,
+          },
+        });
 
-  addToast({
-    type: "success",
-    title: "Account updated",
-    description: `${modalFormData.username} was updated.`,
-  });
-} else {
-  await createUser({
-    username: modalFormData.username,
-    first_name: modalFormData.firstName,
-    last_name: modalFormData.lastName,
-    password: modalFormData.password,
-    role_id: ROLE_MAP[modalFormData.permission as keyof typeof ROLE_MAP],
-    department_id:
-      DEPARTMENT_MAP[
-        modalFormData.department as keyof typeof DEPARTMENT_MAP
-      ],
-    user_status_id: modalFormData.access === "Active" ? 1 : 2,
-  });
+        addToast({
+          type: "success",
+          title: "Account updated",
+          description: `${modalFormData.username} was updated.`,
+        });
+      } else {
+        await createUserMutation.mutateAsync({
+          username: modalFormData.username,
+          first_name: modalFormData.firstName,
+          last_name: modalFormData.lastName,
+          password: modalFormData.password,
+          role_id: ROLE_MAP[modalFormData.permission as keyof typeof ROLE_MAP],
+          department_id:
+            DEPARTMENT_MAP[
+            modalFormData.department as keyof typeof DEPARTMENT_MAP
+            ],
+          user_status_id: modalFormData.access === "Active" ? 1 : 2,
+        } as any);
 
-  addToast({
-    type: "success",
-    title: "Account created",
-    description: `${modalFormData.username} was created.`,
-  });
-}
+        addToast({
+          type: "success",
+          title: "Account created",
+          description: `${modalFormData.username} was created.`,
+        });
+      }
       closeSaveConfirmation();
       closeModal();
-      await loadUsers();
       resetPagination();
     } catch (error: unknown) {
       const errorMessage =
@@ -551,9 +584,10 @@ useEffect(() => {
       setModalLoading(false);
     }
   }, [
-    accounts,
     editingId,
     modalFormData,
+    createUserMutation,
+    editUserMutation,
     addToast,
     closeSaveConfirmation,
     closeModal,
@@ -567,8 +601,8 @@ useEffect(() => {
 
     setModalLoading(true);
     try {
-      await deleteUser(editingId);
-      
+      await deleteUserMutation.mutateAsync(Number(editingId));
+
       addToast({
         type: "success",
         title: "Account deleted",
@@ -576,7 +610,6 @@ useEffect(() => {
       });
       closeDeleteConfirmation();
       closeModal();
-      await loadUsers();
       resetPagination();
     } catch (error: unknown) {
       const errorMessage =
@@ -592,15 +625,84 @@ useEffect(() => {
   }, [
     editingId,
     modalFormData.username,
+    deleteUserMutation,
     addToast,
     closeDeleteConfirmation,
     closeModal,
     resetPagination,
   ]);
 
+  // Approve / Reject submit handlers
+  const handleApproveFormChange = useCallback(
+    (field: string, value: string) => {
+      setApproveFormData((prev) => ({ ...prev, [field]: value }));
+      if (approveFormErrors[field]) {
+        setApproveFormErrors((prev) => {
+          const updated = { ...prev };
+          delete updated[field];
+          return updated;
+        });
+      }
+    },
+    [approveFormErrors],
+  );
+
+  const handleApproveSubmit = useCallback(async () => {
+    if (!approvingAccount) return;
+
+    const errors: Record<string, string> = {};
+    if (!approveFormData.department) errors.department = "Please select a department.";
+    if (!approveFormData.permission) errors.permission = "Please select a permission level.";
+    if (Object.keys(errors).length > 0) {
+      setApproveFormErrors(errors);
+      return;
+    }
+
+    try {
+      await approveUserMutation.mutateAsync({
+        id: Number(approvingAccount.id),
+        dto: {
+          role_id: ROLE_MAP[approveFormData.permission as keyof typeof ROLE_MAP],
+          department_id:
+            DEPARTMENT_MAP[approveFormData.department as keyof typeof DEPARTMENT_MAP],
+        },
+      });
+
+      addToast({
+        type: "success",
+        title: "Account approved",
+        description: `${approvingAccount.username} is now active.`,
+      });
+      closeApproveModal();
+      resetPagination();
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Something went wrong.";
+      addToast({ type: "error", title: "Approval failed", description: errorMessage });
+    }
+  }, [approvingAccount, approveFormData, approveUserMutation, addToast, closeApproveModal, resetPagination]);
+
+  const handleRejectConfirm = useCallback(async () => {
+    if (!rejectingAccount) return;
+
+    try {
+      await rejectUserMutation.mutateAsync(Number(rejectingAccount.id));
+      addToast({
+        type: "success",
+        title: "Account rejected",
+        description: `${rejectingAccount.username} was rejected.`,
+      });
+      closeRejectConfirmation();
+      resetPagination();
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Something went wrong.";
+      addToast({ type: "error", title: "Rejection failed", description: errorMessage });
+    }
+  }, [rejectingAccount, rejectUserMutation, addToast, closeRejectConfirmation, resetPagination]);
+
   return (
     <div className="min-h-screen bg-[#EAF0FF] text-[#182286] pt-20">
-
       <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {/* Page header */}
         <div className="mb-8">
@@ -614,7 +716,7 @@ useEffect(() => {
           <SearchBar onSearch={handleSearch} placeholder="Search" />
         </div>
 
-        {/* Filter row – All Accounts, Permission, Department, Access */}
+        {/* Filter row */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap gap-3">
             <DynamicButton
@@ -660,7 +762,7 @@ useEffect(() => {
         <div className="overflow-hidden rounded-lg border border-[#D5DAE8] bg-white">
           <div className="overflow-x-auto">
             <div className="min-w-200">
-              <div className="grid grid-cols-[2.2fr_1.6fr_1fr_1fr_0.6fr] bg-[#202B90] px-8 py-4 text-sm font-semibold text-white">
+              <div className="grid grid-cols-[2.2fr_1.6fr_1fr_1fr_0.9fr] bg-[#202B90] px-8 py-4 text-sm font-semibold text-white">
                 <div>Name / Username</div>
                 <div>Department</div>
                 <div>Permission</div>
@@ -668,11 +770,15 @@ useEffect(() => {
                 <div className="text-center">Action</div>
               </div>
               <div className="divide-y divide-[#D5DAE8] bg-[#F8FAFF]">
-                {paginatedAccounts.length > 0 ? (
+                {usersLoading ? (
+                  <div className="flex flex-col items-center justify-center gap-3 px-6 py-20 text-center">
+                    <p className="text-sm text-[#667085]">Loading accounts…</p>
+                  </div>
+                ) : paginatedAccounts.length > 0 ? (
                   paginatedAccounts.map((account) => (
                     <div
                       key={account.id}
-                      className="grid grid-cols-[2.2fr_1.6fr_1fr_1fr_0.6fr] items-center px-6 py-4 text-sm sm:px-8"
+                      className="grid grid-cols-[2.2fr_1.6fr_1fr_1fr_0.9fr] items-center px-6 py-4 text-sm sm:px-8"
                     >
                       <div className="flex items-center gap-3">
                         <ProfileBadge
@@ -701,21 +807,44 @@ useEffect(() => {
                         style={
                           account.access === "Active"
                             ? { backgroundColor: "#DCFCE7", color: "#166534" }
-                            : { backgroundColor: "#FEE2E2", color: "#991B1B" }
+                            : account.access === "Pending Verification"
+                              ? { backgroundColor: "#FEF3C7", color: "#92400E" }
+                              : account.access === "Deleted"
+                                ? { backgroundColor: "#F3F4F6", color: "#374151" }
+                                : { backgroundColor: "#FEE2E2", color: "#991B1B" }
                         }
                       >
                         {account.access}
                       </div>
-                      <div className="flex justify-center">
-                        <DynamicButton
-                          label="Edit"
-                          variant="clear"
-                          size="small"
-                          iconPosition="right"
-                          icon={<PencilIcon size={16} stroke="#2563EB" />}
-                          className="px-0 py-0 text-[#2563EB]"
-                          onClick={() => openEditModal(account)}
-                        />
+                      <div className="flex justify-center gap-3">
+                        {account.access === "Pending Verification" ? (
+                          <>
+                            <DynamicButton
+                              label="Approve"
+                              variant="clear"
+                              size="small"
+                              className="px-0 py-0 text-[#16A34A]"
+                              onClick={() => openApproveModal(account)}
+                            />
+                            <DynamicButton
+                              label="Reject"
+                              variant="clear"
+                              size="small"
+                              className="px-0 py-0 text-[#DC2626]"
+                              onClick={() => openRejectConfirmation(account)}
+                            />
+                          </>
+                        ) : (
+                          <DynamicButton
+                            label="Edit"
+                            variant="clear"
+                            size="small"
+                            iconPosition="right"
+                            icon={<PencilIcon size={16} stroke="#2563EB" />}
+                            className="px-0 py-0 text-[#2563EB]"
+                            onClick={() => openEditModal(account)}
+                          />
+                        )}
                       </div>
                     </div>
                   ))
@@ -758,7 +887,7 @@ useEffect(() => {
         </div>
       </main>
 
-      {/* Modal – render form with InputField and Dropdown components */}
+      {/* Create / Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
           <InputForms
@@ -957,6 +1086,93 @@ useEffect(() => {
         </div>
       )}
 
+      {/* Approve Modal */}
+      {isApproveModalOpen && approvingAccount && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <InputForms
+            title="Approve Account"
+            onCancel={closeApproveModal}
+            onSubmit={handleApproveSubmit}
+            onSecondaryAction={closeApproveModal}
+            showCloseButton={true}
+            width="480px"
+            mode="add"
+            buttonLabel="Approve"
+            secondaryButtonLabel="Cancel"
+            secondaryButtonVariant="white"
+            buttonLoading={approveUserMutation.isPending}
+            buttonDisabled={approveUserMutation.isPending}
+            secondaryButtonDisabled={approveUserMutation.isPending}
+          >
+            <p className="text-sm text-[#667085] mb-2">
+              Assign a department and permission level for{" "}
+              <span className="font-semibold text-[#182286]">
+                {splitName(approvingAccount.firstName, approvingAccount.lastName)}
+              </span>{" "}
+              ({approvingAccount.username}).
+            </p>
+
+            <div>
+              <label
+                className="block mb-2 text-[16px] font-semibold leading-none"
+                style={{ color: "#002075", fontFamily: "Inter" }}
+              >
+                Department <span className="text-red-600">*</span>
+              </label>
+              <Dropdown
+                options={DEPARTMENT_OPTIONS.map((dept) => ({
+                  id: dept,
+                  label: dept,
+                  value: dept,
+                }))}
+                placeholder="Select department"
+                selectedValue={approveFormData.department}
+                onSelect={(opt) =>
+                  handleApproveFormChange("department", String(opt.value))
+                }
+                disabled={approveUserMutation.isPending}
+                error={approveFormErrors.department}
+                variant="secondary"
+              />
+              {approveFormErrors.department && (
+                <p className="text-xs mt-1 text-[#DC2626] font-medium">
+                  {approveFormErrors.department}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label
+                className="block mb-2 text-[16px] font-semibold leading-none"
+                style={{ color: "#002075", fontFamily: "Inter" }}
+              >
+                Permission <span className="text-red-600">*</span>
+              </label>
+              <Dropdown
+                options={PERMISSION_OPTIONS.map((perm) => ({
+                  id: perm,
+                  label: perm,
+                  value: perm,
+                }))}
+                placeholder="Select permission"
+                selectedValue={approveFormData.permission}
+                onSelect={(opt) =>
+                  handleApproveFormChange("permission", String(opt.value))
+                }
+                disabled={approveUserMutation.isPending}
+                error={approveFormErrors.permission}
+                variant="secondary"
+              />
+              {approveFormErrors.permission && (
+                <p className="text-xs mt-1 text-[#DC2626] font-medium">
+                  {approveFormErrors.permission}
+                </p>
+              )}
+            </div>
+          </InputForms>
+        </div>
+      )}
+
       <ConfirmationModal
         isOpen={isSaveConfirmOpen}
         title={saveConfirmation.title}
@@ -979,6 +1195,18 @@ useEffect(() => {
         onConfirm={handleDeleteAccount}
         loading={modalLoading}
         disabled={modalLoading}
+      />
+
+      <ConfirmationModal
+        isOpen={isRejectConfirmOpen}
+        title="Reject Account"
+        message={`Reject ${rejectingAccount?.username ?? "this account"}? They will not be able to log in.`}
+        cancelLabel="Cancel"
+        confirmLabel="Reject Account"
+        onCancel={closeRejectConfirmation}
+        onConfirm={handleRejectConfirm}
+        loading={rejectUserMutation.isPending}
+        disabled={rejectUserMutation.isPending}
       />
 
       <ToastContainer

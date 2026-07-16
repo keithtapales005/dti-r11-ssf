@@ -1,8 +1,24 @@
 import { API_URL } from "../config";
-import {LoginDto} from "../types/auth";
+import { LoginDto } from "../types/auth";
+import { RegisterDto } from "../types/auth";
 
-export const authService ={
-    Login: async (LoginDto:LoginDto) => {
+export const authService = {
+
+    Register: async (dto: RegisterDto) => {
+        const res = await fetch(`${API_URL}/auth/register`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(dto),
+        });
+        if (!res.ok) {
+            throw new Error(await res.text());
+        }
+        return res.json();
+    },
+
+    Login: async (LoginDto: LoginDto) => {
         const res = await fetch(`${API_URL}/auth/login`, {
             method: "POST",
             credentials: "include",
@@ -26,7 +42,7 @@ export const authService ={
         }
         return res.json();
     },
-    
+
     getCurrentUser: async () => {
         const res = await fetch(`${API_URL}/auth/me`, {
             method: "GET",

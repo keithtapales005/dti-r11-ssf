@@ -6,13 +6,14 @@ import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from './types/jwt-payload';
 import { supabase } from '../supabase/supabase.client';
+import { RegisterDto } from './dto/register.dto';
 
 export interface AuthUser {
   user_id: number;
   username: string;
   role_id: number;
   department_id: number;
-}   
+}
 
 export interface AuthResponse {
   access_token: string;
@@ -27,7 +28,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   private getJwtExpirationSeconds(): number {
     const rawValue = this.configService.get<string>('JWT_EXPIRATION');
@@ -49,9 +50,9 @@ export class AuthService {
     if (!passwordMatches) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    if(user.user_status_id !== 1) 
+    if (user.user_status_id !== 1)
       throw new UnauthorizedException('User is not active');
-    
+
     return {
       user_id: user.user_id,
       username: user.username,
@@ -72,11 +73,11 @@ export class AuthService {
 
     const accessToken = await this.jwtService.signAsync(payload);
 
-        await supabase.from('logs').insert({
-          user_id: user.user_id,
-          affected_id: user.user_id,
-          action: 'LOGIN',
-        });
+    await supabase.from('logs').insert({
+      user_id: user.user_id,
+      affected_id: user.user_id,
+      action: 'LOGIN',
+    });
 
     return {
       access_token: accessToken,
@@ -84,5 +85,9 @@ export class AuthService {
       expires_in: this.getJwtExpirationSeconds(),
       user,
     };
+  }
+
+  async register(dto: RegisterDto) {
+    return this.usersService.registerUser(dto);
   }
 }

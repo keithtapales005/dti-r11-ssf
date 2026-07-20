@@ -15,6 +15,12 @@ import { ConfirmationModal } from "../../components/confirmation-modal";
 import { ProjectCardDetails } from "@/app/components/project-card-details";
 import Footer from "../../components/footer";
 import Pagination from "../../components/pagination";
+import { useProject } from "@/lib/queries/projectQueries";
+import { useConcernsByProject } from "@/lib/queries/concernQueries";
+import { useCreateConcern } from "@/lib/mutations/concernMutation";
+import Dropdown, { DropdownOption } from "@/app/components/dropdown";
+import { useChecklistByProject } from "@/lib/queries/checklistQueries";
+import { useCreateChecklistItem, useUpdateChecklistItem, useDeleteChecklistItem } from "@/lib/mutations/checklistMutation";
 
 // ------------------------------------------------------------------
 // TYPES
@@ -48,6 +54,10 @@ interface ProjectDetails {
     | "Disposed"
     | "No Status";
   filesCount: number;
+  yearLaunched?: number | null;
+  dateEstablished?: string | null;
+  industry?: string | null;
+  projectCost?: number | null;
 }
 
 // ------------------------------------------------------------------
@@ -255,6 +265,9 @@ async function simulateFileDelete(): Promise<void> {
 export default function FilePage() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const projectId = Number(searchParams.get("projectId"));
+  const { data: realProject, isLoading: projectLoading, error: projectError } = useProject(projectId);
+
   const provinceName = searchParams.get("province") || "Davao City";
   const paramSsfNumber = searchParams.get("ssfNumber");
   const paramBusinessName = searchParams.get("businessName");
@@ -286,6 +299,23 @@ export default function FilePage() {
       ? Number.parseInt(paramFilesCount, 10)
       : MOCK_PROJECT_DETAILS.filesCount,
   });
+
+  // Once real project data arrives from the backend, override the mock/param-based details
+  // Once real project data arrives from the backend, override the mock/param-based details
+  useEffect(() => {
+    if (realProject) {
+      setProjectDetails((prev) => ({
+        ...prev,
+        ssfNumber: realProject.ssf_number,
+        businessName: realProject.business_name,
+        projectTitle: realProject.project_title,
+        yearLaunched: realProject.year_launched,
+        dateEstablished: realProject.date_established,
+        industry: realProject.industry,
+        projectCost: realProject.project_cost,
+      }));
+    }
+  }, [realProject]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -389,6 +419,130 @@ export default function FilePage() {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3000);
   }, []);
+
+  const { data: concerns, isLoading: concernsLoading } = useConcernsByProject(projectId);
+  const createConcern = useCreateConcern();
+  const [isConcernModalOpen, setIsConcernModalOpen] = useState(false);
+  const [concernCategory, setConcernCategory] = useState<string>("");
+  const [concernDescription, setConcernDescription] = useState("");
+
+  const concernCategoryOptions: DropdownOption[] = [
+    { id: "Challenge", label: "Challenge", value: "Challenge" },
+    { id: "Operational Concern", label: "Operational Concern", value: "Operational Concern" },
+    { id: "Grievance", label: "Grievance", value: "Grievance" },
+  ];
+
+  const handleSubmitConcern = () => {
+    if (!concernCategory || !concernDescription.trim()) {
+      addToast({
+        type: "warning",
+        title: "Missing Fields",
+        description: "Please select a category and enter a description.",
+        duration: 3000,
+      });
+      return;
+    }
+
+    createConcern.mutate(
+      {
+        project_id: projectId,
+        category: concernCategory as any,
+        description: concernDescription.trim(),
+      },
+      {
+        onSuccess: () => {
+          addToast({
+            type: "success",
+            title: "Concern Reported",
+            description: "The concern has been logged successfully.",
+            duration: 3000,
+          });
+          setIsConcernModalOpen(false);
+          setConcernCategory("");
+          setConcernDescription("");
+        },
+        onError: (error: any) => {
+          addToast({
+            type: "error",
+            title: "Failed to Report Concern",
+            description: error?.message || "Something went wrong.",
+            duration: 3000,
+          });
+        },
+      },
+    );
+  };
+
+  const { data: checklistData, isLoading: checklistLoading } = useChecklistByProject(projectId);
+  const createChecklistItem = useCreateChecklistItem();
+  const updateChecklistItem = useUpdateChecklistItem(projectId);
+  const deleteChecklistItem = useDeleteChecklistItem(projectId);
+  const [newDocumentName, setNewDocumentName] = useState("");
+  const [isChecklistExpanded, setIsChecklistExpanded] = useState(false);
+
+  const handleAddChecklistItem = () => {
+    if (!newDocumentName.trim()) {
+      addToast({
+        type: "warning",
+        title: "Missing Document Name",
+        description: "Please enter a document name.",
+        duration: 3000,
+      });
+      return;
+    }
+
+    createChecklistItem.mutate(
+      { project_id: projectId, document_name: newDocumentName.trim() },
+      {
+        onSuccess: () => {
+          setNewDocumentName("");
+          addToast({
+            type: "success",
+            title: "Document Added",
+            description: "The required document has been added to the checklist.",
+            duration: 3000,
+          });
+        },
+        onError: (error: any) => {
+          addToast({
+            type: "error",
+            title: "Failed to Add Document",
+            description: error?.message || "Something went wrong.",
+            duration: 3000,
+          });
+        },
+      },
+    );
+  };
+
+  const handleChecklistStatusChange = (id: string, status: "Pending" | "Uploaded" | "Verified") => {
+    updateChecklistItem.mutate(
+      { id, dto: { status } },
+      {
+        onError: (error: any) => {
+          addToast({
+            type: "error",
+            title: "Failed to Update Status",
+            description: error?.message || "Something went wrong.",
+            duration: 3000,
+          });
+        },
+      },
+    );
+  };
+
+  const handleDeleteChecklistItem = (id: string) => {
+    deleteChecklistItem.mutate(id, {
+      onError: (error: any) => {
+        addToast({
+          type: "error",
+          title: "Failed to Delete Item",
+          description: error?.message || "Something went wrong.",
+          duration: 3000,
+        });
+      },
+    });
+  };
 
   const createObjectUrl = useCallback((file: File) => {
     const url = URL.createObjectURL(file);
@@ -746,6 +900,14 @@ export default function FilePage() {
   // RENDER
   // ------------------------------------------------------------------
 
+  if (projectLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[#F5F8FC]">
+        <p className="text-[#6D7380]">Loading project...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-[#F5F8FC]">
 
@@ -770,14 +932,177 @@ export default function FilePage() {
           {/* Project Details Card */}
           <div className="mb-6">
             <ProjectCardDetails
+              projectId={projectId}
               ssfNumber={projectDetails.ssfNumber}
               businessName={projectDetails.businessName}
               projectTitle={projectDetails.projectTitle}
               status={projectDetails.status as ProjectDetails["status"]}
               filesCount={projectDetails.filesCount}
+              yearLaunched={projectDetails.yearLaunched}
+              dateEstablished={projectDetails.dateEstablished}
+              industry={projectDetails.industry}
+              projectCost={projectDetails.projectCost}
               isAdminView={userRole === "Admin"}
               onDelete={handleOpenProjectDelete}
             />
+          </div>
+
+          {/* Concerns / Grievances Card */}
+          <div className="mb-6 bg-white rounded-[10px] px-7 py-6 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-[#182286]">
+                Challenges / Concerns / Grievances
+              </h2>
+              {userRole === "Admin" && (
+                <DynamicButton
+                  label="Report Concern"
+                  variant="blue"
+                  icon={<PlusIcon size={16} stroke="#FEFEFE" strokeWidth={2} />}
+                  iconPosition="left"
+                  onClick={() => setIsConcernModalOpen(true)}
+                  size="small"
+                />
+              )}
+            </div>
+
+            {concernsLoading ? (
+              <p className="text-sm text-[#6D7380]">Loading concerns...</p>
+            ) : concerns && concerns.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                {concerns.map((concern) => (
+                  <div
+                    key={concern.project_concern_id}
+                    className="border border-gray-200 rounded-lg p-4"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-semibold uppercase text-[#2563EB]">
+                        {concern.category}
+                      </span>
+                      <span className="text-xs text-[#6D7380]">
+                        {new Date(concern.created_at).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </span>
+                    </div>
+                    <p className="text-sm text-black">{concern.description}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-[#6D7380]">No concerns reported yet.</p>
+            )}
+          </div>
+
+          {/* Document Checklist Card */}
+          <div className="mb-6 bg-white rounded-[10px] px-7 py-6 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-semibold text-[#182286]">
+                Document Completion Checklist
+              </h2>
+              {checklistData && (
+                <span className="text-sm font-semibold text-[#2563EB]">
+                  {checklistData.verifiedCount} / {checklistData.total} Verified
+                </span>
+              )}
+            </div>
+
+            {/* Progress Bar */}
+            <div className="w-full bg-gray-100 rounded-full h-3 mb-4 overflow-hidden">
+              <div
+                className="h-full bg-[#182286] transition-all duration-300"
+                style={{ width: `${checklistData?.progressPercentage ?? 0}%` }}
+              />
+            </div>
+            <p className="text-xs text-[#6D7380] mb-4">
+              {checklistData?.progressPercentage ?? 0}% complete
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setIsChecklistExpanded((prev) => !prev)}
+              className="flex items-center gap-2 text-sm font-semibold text-[#2563EB] mb-4"
+            >
+              {isChecklistExpanded ? "Hide" : "View"} Required Documents
+              <span className={`transition-transform ${isChecklistExpanded ? "rotate-180" : ""}`}>
+                ▼
+              </span>
+            </button>
+
+            {isChecklistExpanded && (
+              <>
+                {checklistLoading ? (
+                  <p className="text-sm text-[#6D7380]">Loading checklist...</p>
+                ) : (
+                  <div className="flex flex-col gap-2 mb-4">
+                    {checklistData?.items.map((item) => (
+                      <div
+                        key={item.checklist_id}
+                        className="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-3"
+                      >
+                        <span className="text-sm text-black">{item.document_name}</span>
+                        <div className="flex items-center gap-2">
+                          {userRole === "Admin" ? (
+                            <select
+                              value={item.status}
+                              onChange={(e) =>
+                                handleChecklistStatusChange(
+                                  item.checklist_id,
+                                  e.target.value as "Pending" | "Uploaded" | "Verified",
+                                )
+                              }
+                              className="text-xs font-semibold rounded-md border border-gray-200 px-2 py-1 outline-none text-black"
+                            >
+                              <option value="Pending">Pending</option>
+                              <option value="Uploaded">Uploaded</option>
+                              <option value="Verified">Verified</option>
+                            </select>
+                          ) : (
+                            <span className="text-xs font-semibold px-2 py-1 rounded-md bg-gray-100 text-black">
+                              {item.status}
+                            </span>
+                          )}
+                          {userRole === "Admin" && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteChecklistItem(item.checklist_id)}
+                              className="text-xs text-[#DC2636] hover:underline"
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {(!checklistData || checklistData.items.length === 0) && (
+                      <p className="text-sm text-[#6D7380]">No required documents added yet.</p>
+                    )}
+                  </div>
+                )}
+
+                {userRole === "Admin" && (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Enter required document name..."
+                      value={newDocumentName}
+                      onChange={(e) => setNewDocumentName(e.target.value)}
+                      className="flex-1 rounded-md border border-gray-200 bg-[#F9FAFB] px-3 py-2 text-sm text-[#182286] outline-none focus:border-[#182286]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddChecklistItem}
+                      disabled={createChecklistItem.isPending}
+                      className="rounded-md bg-[#182286] px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50"
+                    >
+                      {createChecklistItem.isPending ? "Adding..." : "Add"}
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+
           </div>
 
           {/* Search Bar */}
@@ -972,6 +1297,68 @@ export default function FilePage() {
               disabled={isSubmitting}
               accept="*/*"
             />
+          </div>
+        </div>
+      )}
+
+      {/* ================= REPORT CONCERN MODAL ================= */}
+      {isConcernModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="concern-modal-title"
+        >
+          <div
+            className="absolute inset-0 bg-[#182286]/20 backdrop-blur-[1px]"
+            onClick={() => setIsConcernModalOpen(false)}
+            aria-hidden="true"
+          />
+
+          <div className="relative bg-white rounded-lg shadow-lg w-full max-w-[500px] mx-4 p-6 flex flex-col gap-4">
+            <h2 id="concern-modal-title" className="text-xl font-bold text-[#182286]">
+              Report a Concern
+            </h2>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-[#182286]">Category</label>
+              <Dropdown
+                variant="secondary"
+                options={concernCategoryOptions}
+                selectedValue={concernCategory}
+                onSelect={(option) => setConcernCategory(String(option.value))}
+                placeholder="Select category"
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-[#182286]">Description</label>
+              <textarea
+                className="w-full rounded-md border border-gray-200 bg-[#F9FAFB] px-3 py-2 text-sm text-[#182286] outline-none focus:border-[#182286]"
+                rows={4}
+                placeholder="Describe the challenge, concern, or grievance..."
+                value={concernDescription}
+                onChange={(e) => setConcernDescription(e.target.value)}
+              />
+            </div>
+
+            <div className="flex gap-3 mt-2">
+              <button
+                type="button"
+                onClick={() => setIsConcernModalOpen(false)}
+                className="flex-1 rounded-md border border-gray-200 py-2 text-sm font-semibold text-[#182286] hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmitConcern}
+                disabled={createConcern.isPending}
+                className="flex-1 rounded-md bg-[#182286] py-2 text-sm font-semibold text-white hover:bg-blue-800 disabled:opacity-50"
+              >
+                {createConcern.isPending ? "Submitting..." : "Submit"}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -100,6 +100,8 @@ export default function InputForms({
           width: "100%",
           flex: 1,
           minHeight: 0,
+          overflowY: "auto",
+          paddingRight: "8px",
         }}
       >
         {children}

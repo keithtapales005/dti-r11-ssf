@@ -11,12 +11,14 @@ import InputField from "@/app/components/input-field";
 import { DynamicButton } from "@/app/components/dynamic-buttons";
 import InputForms from "@/app/components/input-forms";
 import Dropdown, { type DropdownOption } from "@/app/components/dropdown";
+import { useUpdateProject } from "@/lib/mutations/projectMutation";
 
 /* =========================
    TYPES
 ========================= */
 
 export interface ProjectCardDetailsProps {
+  projectId: number;
   ssfNumber: string;
   businessName: string;
   projectTitle: string;
@@ -32,6 +34,10 @@ export interface ProjectCardDetailsProps {
     | "Disposed"
     | "No Status";
   filesCount: number;
+  yearLaunched?: number | null;
+  dateEstablished?: string | null;
+  industry?: string | null;
+  projectCost?: number | null;
   isAdminView?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
@@ -51,21 +57,49 @@ export interface ProjectCardDetailsProps {
       | "Disposed"
       | "No Status";
     filesCount: number;
+    yearLaunched?: number | null;
+    dateEstablished?: string | null;
+    industry?: string | null;
+    projectCost?: number | null;
   }) => void;
 }
 
 const PROJECT_UPDATES_STORAGE_KEY = "ssf-project-updates";
+
+function formatCurrency(value?: number | null) {
+  if (value === null || value === undefined) return "—";
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+  }).format(value);
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
 
 /* =========================
    PROJECT CARD DETAILS COMPONENT
 ========================= */
 
 export const ProjectCardDetails: React.FC<ProjectCardDetailsProps> = ({
+  projectId,
   ssfNumber = "year-XI-DVC-0000",
   businessName,
   projectTitle,
   status,
   filesCount,
+  yearLaunched,
+  dateEstablished,
+  industry,
+  projectCost,
   isAdminView = false,
   onEdit,
   onDelete,
@@ -75,6 +109,7 @@ export const ProjectCardDetails: React.FC<ProjectCardDetailsProps> = ({
   const [isActionsOpen, setIsActionsOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const actionsRef = useRef<HTMLDivElement>(null);
+  const updateProject = useUpdateProject();
   const [editForm, setEditForm] = useState({
     year,
     region,
@@ -83,6 +118,10 @@ export const ProjectCardDetails: React.FC<ProjectCardDetailsProps> = ({
     businessName,
     projectTitle,
     status,
+    yearLaunched: yearLaunched ? String(yearLaunched) : "",
+    dateEstablished: dateEstablished ?? "",
+    industry: industry ?? "",
+    projectCost: projectCost !== null && projectCost !== undefined ? String(projectCost) : "",
   });
   const [cardDetails, setCardDetails] = useState({
     ssfNumber,
@@ -90,6 +129,10 @@ export const ProjectCardDetails: React.FC<ProjectCardDetailsProps> = ({
     projectTitle,
     status,
     filesCount,
+    yearLaunched,
+    dateEstablished,
+    industry,
+    projectCost,
   });
 
   const provinceOptions: DropdownOption[] = [
@@ -133,6 +176,10 @@ export const ProjectCardDetails: React.FC<ProjectCardDetailsProps> = ({
       businessName,
       projectTitle,
       status,
+      yearLaunched: yearLaunched ? String(yearLaunched) : "",
+      dateEstablished: dateEstablished ?? "",
+      industry: industry ?? "",
+      projectCost: projectCost !== null && projectCost !== undefined ? String(projectCost) : "",
     });
     setCardDetails({
       ssfNumber,
@@ -140,8 +187,12 @@ export const ProjectCardDetails: React.FC<ProjectCardDetailsProps> = ({
       projectTitle,
       status,
       filesCount,
+      yearLaunched,
+      dateEstablished,
+      industry,
+      projectCost,
     });
-  }, [year, region, province, number, businessName, projectTitle, status]);
+  }, [year, region, province, number, businessName, projectTitle, status, yearLaunched, dateEstablished, industry, projectCost, filesCount, ssfNumber]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -164,10 +215,6 @@ export const ProjectCardDetails: React.FC<ProjectCardDetailsProps> = ({
   };
 
   const persistProjectDetails = () => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
     const updatedProject = {
       id: ssfNumber,
       ssfNumber: editSsfNumber,
@@ -175,19 +222,31 @@ export const ProjectCardDetails: React.FC<ProjectCardDetailsProps> = ({
       projectTitle: editForm.projectTitle,
       status: editForm.status,
       filesCount,
+      yearLaunched: editForm.yearLaunched ? Number(editForm.yearLaunched) : null,
+      dateEstablished: editForm.dateEstablished || null,
+      industry: editForm.industry || null,
+      projectCost: editForm.projectCost ? Number(editForm.projectCost) : null,
     };
 
-    const stored = window.localStorage.getItem(PROJECT_UPDATES_STORAGE_KEY);
-    const projects = stored ? (JSON.parse(stored) as Array<typeof updatedProject>) : [];
-    const nextProjects = projects.filter((project) => project.id !== ssfNumber);
-
-    window.localStorage.setItem(
-      PROJECT_UPDATES_STORAGE_KEY,
-      JSON.stringify([...nextProjects, updatedProject]),
+    updateProject.mutate(
+      {
+        id: projectId,
+        dto: {
+          business_name: editForm.businessName,
+          project_title: editForm.projectTitle,
+          year_launched: updatedProject.yearLaunched ?? undefined,
+          date_established: updatedProject.dateEstablished ?? undefined,
+          industry: updatedProject.industry ?? undefined,
+          project_cost: updatedProject.projectCost ?? undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          setCardDetails(updatedProject);
+          onSave?.(updatedProject);
+        },
+      },
     );
-
-    setCardDetails(updatedProject);
-    onSave?.(updatedProject);
   };
 
   const handleDelete = () => {
@@ -240,6 +299,57 @@ export const ProjectCardDetails: React.FC<ProjectCardDetailsProps> = ({
             </div>
             <div className="self-stretch justify-start text-2xl font-bold font-['Inter'] text-black">
               {cardDetails.projectTitle}
+            </div>
+          </div>
+
+          {/* Additional Details Row: Year Launched, Date Established, Industry, Project Cost */}
+          <div className="self-stretch grid grid-cols-2 gap-5 pt-2">
+            <div className="flex flex-col justify-start items-start gap-2">
+              <div
+                className="self-stretch justify-start text-sm font-semibold font-['Inter']"
+                style={{ color: "#6D7380" }}
+              >
+                Year Launched
+              </div>
+              <div className="self-stretch justify-start text-base font-semibold font-['Inter'] text-black">
+                {cardDetails.yearLaunched ?? "—"}
+              </div>
+            </div>
+
+            <div className="flex flex-col justify-start items-start gap-2">
+              <div
+                className="self-stretch justify-start text-sm font-semibold font-['Inter']"
+                style={{ color: "#6D7380" }}
+              >
+                Date Established
+              </div>
+              <div className="self-stretch justify-start text-base font-semibold font-['Inter'] text-black">
+                {formatDate(cardDetails.dateEstablished)}
+              </div>
+            </div>
+
+            <div className="flex flex-col justify-start items-start gap-2">
+              <div
+                className="self-stretch justify-start text-sm font-semibold font-['Inter']"
+                style={{ color: "#6D7380" }}
+              >
+                Industry
+              </div>
+              <div className="self-stretch justify-start text-base font-semibold font-['Inter'] text-black">
+                {cardDetails.industry ?? "—"}
+              </div>
+            </div>
+
+            <div className="flex flex-col justify-start items-start gap-2">
+              <div
+                className="self-stretch justify-start text-sm font-semibold font-['Inter']"
+                style={{ color: "#6D7380" }}
+              >
+                Project Cost
+              </div>
+              <div className="self-stretch justify-start text-base font-semibold font-['Inter'] text-black">
+                {formatCurrency(cardDetails.projectCost)}
+              </div>
             </div>
           </div>
         </div>
@@ -445,6 +555,51 @@ export const ProjectCardDetails: React.FC<ProjectCardDetailsProps> = ({
                 disabled={false}
               />
 
+              <div className="text-sm font-semibold text-[#182286] pt-2">
+                Additional Details
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <InputField
+                  label="Year Launched"
+                  name="yearLaunched"
+                  placeholder="e.g. 2024"
+                  value={editForm.yearLaunched}
+                  onChange={(value) =>
+                    setEditForm((current) => ({ ...current, yearLaunched: value }))
+                  }
+                  maxLength={4}
+                />
+                <InputField
+                  label="Date Established"
+                  name="dateEstablished"
+                  type="date"
+                  placeholder="YYYY-MM-DD"
+                  value={editForm.dateEstablished}
+                  onChange={(value) =>
+                    setEditForm((current) => ({ ...current, dateEstablished: value }))
+                  }
+                />
+                <InputField
+                  label="Industry"
+                  name="industry"
+                  placeholder="e.g. Manufacturing"
+                  value={editForm.industry}
+                  onChange={(value) =>
+                    setEditForm((current) => ({ ...current, industry: value }))
+                  }
+                />
+                <InputField
+                  label="Project Cost"
+                  name="projectCost"
+                  type="number"
+                  placeholder="e.g. 250000.50"
+                  value={editForm.projectCost}
+                  onChange={(value) =>
+                    setEditForm((current) => ({ ...current, projectCost: value }))
+                  }
+                />
+              </div>
             </div>
           </InputForms>
         </div>

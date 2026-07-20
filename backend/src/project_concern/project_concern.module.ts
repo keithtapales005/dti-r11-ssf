@@ -6,4 +6,5 @@ import { ProjectConcernService } from './project_concern.service';
     controllers: [ProjectConcernController],
     providers: [ProjectConcernService],
 })
-export class ProjectConcernModule {}
+
+export class ProjectConcernModule { }

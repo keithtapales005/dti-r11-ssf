@@ -5,22 +5,27 @@ import { supabase } from 'src/supabase/supabase.client';
 
 @Injectable()
 export class ProjectManagementService {
-  private readonly table = 'project';
 
-  async createProject(dto: CreateProjectDto, performedBy: number) {
+  private readonly table = 'project';
+  async createProject(createProjectDto: CreateProjectDto, performedBy: number) {
     const { data, error } = await supabase.from(this.table).insert([
       {
-        province_id: dto.province_id,
-        created_by: dto.created_by,
-        project_status_id: dto.project_status_id,
-        ssf_number: dto.ssf_number,
-        business_name: dto.business_name,
-        project_title: dto.project_title,
-        proposed_by: dto.proposed_by,
+        province_id: createProjectDto.province_id,
+        created_by: createProjectDto.created_by,
+        project_status_id: createProjectDto.project_status_id,
+        ssf_number: createProjectDto.ssf_number,
+        business_name: createProjectDto.business_name,
+        project_title: createProjectDto.project_title,
+        year_launched: createProjectDto.year_launched,
+        date_established: createProjectDto.date_established,
+        industry: createProjectDto.industry,
+        project_cost: createProjectDto.project_cost,
       },
-    ]).select().single();
-
-    if (error) throw new Error(error.message);
+    ]).select()
+      .single();
+    if (error) {
+      throw new Error(error.message);
+    }
 
     await supabase.from('logs').insert({
       user_id: performedBy,
@@ -90,11 +95,12 @@ export class ProjectManagementService {
 
     const { data, error, count } = await supabase
       .from(this.table)
-      .select('*, project_status(status_name), province(province_name)', { count: 'exact' })
-      .is('deleted_at', null)
+      .select('*', { count: 'exact' })
       .range(from, to);
-
-    if (error) throw new Error(error.message);
+    if (error) {
+      throw new Error(error.message);
+    }
     return { data, page, limit, total: count ?? 0, totalPages: Math.ceil((count ?? 0) / limit) };
   }
+
 }

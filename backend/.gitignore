@@ -54,3 +54,10 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+cookies.txt
+login.json
+test-project.json
+test-concern.json
+test-checklist.json
+test-update-checklist.json

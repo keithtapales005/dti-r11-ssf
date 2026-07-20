@@ -180,28 +180,15 @@ export default function Sidebar({
     ${className}`}
 >
       <div className="flex h-full min-h-full w-full flex-col gap-6 overflow-y-auto px-4 py-8 text-white">
-        <div className="flex items-start justify-between gap-3">
+        <div className={`flex ${isCollapsed ? "justify-center" : "justify-end"}`}>
           <button
             type="button"
             onClick={() => setIsCollapsed((current) => !current)}
-            className={`inline-flex h-10 w-10 items-center justify-center rounded-lg text-white transition-colors hover:bg-white/10 ${
-              isCollapsed ? "mx-auto" : ""
-            }`}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-white transition-colors hover:bg-white/10"
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            {isCollapsed ? <FiChevronRight size={20} /> : <FiMenu size={20} />}
+            {isCollapsed ? <FiChevronRight size={20} /> : <FiChevronLeft size={20} />}
           </button>
-
-          {!isCollapsed && (
-            <button
-              type="button"
-              onClick={() => setIsCollapsed(true)}
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-white transition-colors hover:bg-white/10"
-              aria-label="Collapse sidebar"
-            >
-              <FiChevronLeft size={20} />
-            </button>
-          )}
         </div>
 
         <div className={`flex flex-col items-center gap-3 ${isCollapsed ? "pt-1" : "pt-2"}`}>

@@ -1,18 +1,15 @@
 import {
   IsString,
-  MinLength,
-  MaxLength,
   IsInt,
-  IsNotEmpty,
+  IsOptional,
 } from 'class-validator';
+
 export class CreateProjectDto {
     @IsInt()
     province_id!: number;
 
-
     @IsInt()
     created_by!: number;
-
 
     @IsInt()
     project_status_id!: number;
@@ -22,7 +19,11 @@ export class CreateProjectDto {
 
     @IsString()
     business_name!: string;
-    
+
     @IsString()
     project_title!: string;
+
+    @IsOptional()
+    @IsString()
+    proposed_by?: string;
 }

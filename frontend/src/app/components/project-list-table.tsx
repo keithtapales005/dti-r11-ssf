@@ -1,22 +1,18 @@
 "use client"
 
-import { Project } from "@/app/(dashboard)/project-page/page"
+import { Project } from "@/lib/types/project";
 import StatusBadge from "./status-badge";
-import { useState } from "react";
 
 interface ProjectListTableProps {
     projects: Project[];
-    onViewProject: (ssfNumber: string) => void;
+    onViewProject: (id: number) => void;
     variant: string;
 }
 
 export default function ProjectListTable({ projects, onViewProject }: ProjectListTableProps) {
-    
-    const [isLoading, setIsLoading] = useState(false);
 
     return (
         <div className="w-full overflow-x-auto rounded-lg border border-gray-100 bg-white shadow-xs">
-
             <table className="w-full border-collapse text-left text-sm">
                 <thead>
                     <tr className="bg-primary-blue text-white text-base">
@@ -35,53 +31,47 @@ export default function ProjectListTable({ projects, onViewProject }: ProjectLis
                             </td>
                         </tr>
                     ) : (
-                        projects.map((project) => (
-                            <tr 
-                                key={project.ssfNumber} // 💡 Fixed to camelCase
+                        projects.map((project: any) => (
+                            <tr
+                                key={project.project_id}
                                 className="hover:bg-slate-50/80 transition-colors duration-150 group"
                             >
-                                {/* SSF Number Code Anchor */}
                                 <td className="p-4 font-bold text-secondary-blue whitespace-nowrap">
-                                    <span 
-                                        onClick={() => onViewProject(project.ssfNumber)} // 💡 Fixed to camelCase
+                                    <span
+                                        onClick={() => onViewProject(project.project_id)}
                                         className="cursor-pointer hover:underline underline-offset-2 hover:text-blue-700"
                                     >
-                                        {project.ssfNumber} 
+                                        {project.ssf_number}
                                     </span>
                                 </td>
-                                
-                                {/* Agency Title & Subtext Details */}
+
                                 <td className="p-4 max-w-[420px]">
                                     <div className="font-bold text-gray-900 leading-snug truncate group-hover:text-clip group-hover:whitespace-normal">
-                                        {project.businessName} 
+                                        {project.business_name}
                                     </div>
                                     <div className="text-xs text-gray-500 mt-1 font-medium line-clamp-1 group-hover:line-clamp-none">
-                                        {project.projectTitle} 
+                                        {project.project_title}
                                     </div>
                                 </td>
-                                
-                                {/* Status Badges Group using your Shared Component */}
+
                                 <td className="p-4 text-center whitespace-nowrap">
                                     <div className="inline-flex justify-center w-full">
-                                        <StatusBadge status={project.status}/>
+                                        <StatusBadge status={project.project_status?.status_name ?? "Unknown"} />
                                     </div>
                                 </td>
-                                
-                                {/* Timestamp Metrics Block */}
+
                                 <td className="p-4 text-xs whitespace-nowrap">
-                                    {/* 💡 Fixed to camelCase properties */}
-                                    <div className="font-semibold text-gray-800">{project.lastUpdatedBy}</div>
-                                    <div className="text-gray-400 font-medium mt-0.5">{project.lastUpdatedAt}</div>
+                                    <div className="text-gray-400 font-medium mt-0.5">
+                                        {project.updated_at ? new Date(project.updated_at).toLocaleString() : "—"}
+                                    </div>
                                 </td>
-                                
-                                {/* Interactive Action Trigger */}
+
                                 <td className="p-4 text-right whitespace-nowrap">
                                     <button
-                                        onClick={() => onViewProject(project.ssfNumber)} 
+                                        onClick={() => onViewProject(project.project_id)}
                                         className="inline-flex items-center gap-1 text-xs font-bold text-[#182286] bg-slate-50 border border-slate-200 group-hover:bg-[#182286] group-hover:text-white group-hover:border-[#182286] px-3 py-1.5 rounded-md transition-all duration-200 shadow-2xs"
                                     >
                                         View Details
-                                        <span className="text-[10px] transform transition-transform duration-200 group-hover:translate-x-0.5">❯</span>
                                     </button>
                                 </td>
                             </tr>

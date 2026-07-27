@@ -1,5 +1,4 @@
-import { Controller, Post,Body,Patch, Param, UseGuards, Query } from '@nestjs/common';
-import { Get } from '@nestjs/common';
+import { Controller, Post, Body, Patch, Delete, Param, UseGuards, Query, Get } from '@nestjs/common';
 import { ProjectManagementService } from './project_management.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
@@ -14,18 +13,23 @@ export class ProjectManagementController {
     @Post()
     create(@Body() dto: CreateProjectDto, @CurrentUser('user_id') userId: number) {
         return this.projectManagementService.createProject(dto, userId);
-      }
+    }
+
     @Patch(':id')
     update(@Body() dto: UpdateProjectDto, @Param('id') id: number, @CurrentUser('user_id') userId: number) {
         return this.projectManagementService.updateProject(id, dto, userId);
-      }
+    }
+
+    @Delete(':id')
+    remove(@Param('id') id: number, @CurrentUser('user_id') userId: number) {
+        return this.projectManagementService.deleteProject(id, userId);
+    }
+
     @Get()
-    getAllProjects(
-        @Query('page') page = 1,
-        @Query('limit') limit = 10,
-    ) {
+    getAllProjects(@Query('page') page = 1, @Query('limit') limit = 10) {
         return this.projectManagementService.getAllProjects(+page, +limit);
     }
+
     @Get(':id')
     getProject(@Param('id') id: number) {
         return this.projectManagementService.getProject(id);

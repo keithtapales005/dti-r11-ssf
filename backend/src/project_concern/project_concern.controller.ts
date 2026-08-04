@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Patch, Param, UseGuards, Get } from '@nestjs/common';
+import { Controller, Post, Body, Patch, Delete, Param, UseGuards, Get } from '@nestjs/common';
 import { ProjectConcernService } from './project_concern.service';
 import { CreateProjectConcernDto } from './dto/create_project_concern.dto';
 import { UpdateProjectConcernDto } from './dto/update_project_concern.dto';
@@ -28,5 +28,10 @@ export class ProjectConcernController {
     @Get('project/:projectId')
     getConcernsByProject(@Param('projectId') projectId: number) {
         return this.projectConcernService.getConcernsByProject(projectId);
+    }
+
+    @Delete(':id')
+    delete(@Param('id') id: number, @CurrentUser('user_id') userId: number) {
+        return this.projectConcernService.deleteConcern(id, userId);
     }
 }

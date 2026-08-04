@@ -13,6 +13,9 @@ import { ToastContainer, type ToastProps } from "@/app/components/dynamic-toast"
 import { useCallback } from "react";
 import ProjectSupplyTable from "@/app/components/project-supply-table";
 import ProjectConcernList from "@/app/components/project-concern-list";
+import ProjectFileList from "@/app/components/project-file-list";
+import { useFilesByProject } from "@/lib/queries/fileQueries";
+import { useChecklistByProject } from "@/lib/queries/checklistQueries";
 
 export default function ProjectDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -23,11 +26,13 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
   const { data: supplies, isLoading: suppliesLoading } = useSupplies(projectId);
   const { data: concerns, isLoading: concernsLoading } = useConcerns(projectId);
   const { data: statuses } = useProjectStatuses();
+  const { data: files, isLoading: filesLoading } = useFilesByProject(projectId);
+  const { data: checklistData, isLoading: checklistLoading } = useChecklistByProject(projectId);
 
   const editProject = useEditProject();
   const deleteProject = useDeleteProject();
 
-  const [activeTab, setActiveTab] = useState<"supplies" | "concerns">("supplies");
+  const [activeTab, setActiveTab] = useState<"supplies" | "concerns" | "files">("files");
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastProps[]>([]);
 
@@ -88,6 +93,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
     <div className="w-full min-h-screen bg-linear-to-b from-[#C8DBFD] to-[#F5F8FC] p-6">
       <div className="max-w-[1250px] mx-auto space-y-6">
         <ProjectCardDetails
+          projectId={projectId}
           ssfNumber={project.ssf_number}
           businessName={project.business_name}
           projectTitle={project.project_title}
@@ -99,6 +105,14 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
         />
 
         <div className="flex gap-3">
+          <button
+            onClick={() => setActiveTab("files")}
+            className={`px-4 py-2 rounded-full text-sm font-semibold border transition-colors ${
+              activeTab === "files" ? "border-[#182286] text-[#182286] bg-white" : "border-transparent text-gray-500 bg-white/60"
+            }`}
+          >
+            Files
+          </button>
           <button
             onClick={() => setActiveTab("supplies")}
             className={`px-4 py-2 rounded-full text-sm font-semibold border transition-colors ${
@@ -123,10 +137,16 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
           ) : (
             <ProjectSupplyTable projectId={projectId} supplies={supplies ?? []} />
           )
-        ) : concernsLoading ? (
-          <div className="bg-white rounded-lg p-6 text-gray-500">Loading concerns...</div>
+        ) : activeTab === "concerns" ? (
+          concernsLoading ? (
+            <div className="bg-white rounded-lg p-6 text-gray-500">Loading concerns...</div>
+          ) : (
+            <ProjectConcernList projectId={projectId} concerns={concerns ?? []} />
+          )
+        ) : filesLoading || checklistLoading ? (
+          <div className="bg-white rounded-lg p-6 text-gray-500">Loading files...</div>
         ) : (
-          <ProjectConcernList projectId={projectId} concerns={concerns ?? []} />
+          <ProjectFileList projectId={projectId} files={files ?? []} checklistData={checklistData} />
         )}
       </div>
 

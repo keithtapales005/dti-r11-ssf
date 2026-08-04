@@ -66,14 +66,38 @@ export class ProjectConcernService {
 
     async getConcernsByProject(projectId: number) {
         const { data, error } = await supabase
-            .from(this.table)
-            .select('*')
-            .eq('project_id', projectId)
-            .order('created_at', { ascending: false });
+        .from(this.table)
+        .select('*')
+        .eq('project_id', projectId)
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
 
         if (error) {
             throw new Error(error.message);
         }
         return data;
+    }
+
+
+    async deleteConcern(id: number, performedBy: number) {
+        const { data, error } = await supabase
+        .from(this.table)
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('project_concern_id', id)
+        .select()
+        .single();
+
+        if (error) {
+            throw new Error(error.message);
+        }
+
+        await supabase.from('logs').insert({
+            user_id: performedBy,
+            table_name: this.table,
+            affected_id: id,
+            action: 'DELETE',
+        });
+
+        return { message: 'Concern deleted successfully' };
     }
 }

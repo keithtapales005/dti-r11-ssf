@@ -24,3 +24,16 @@ export const useDeleteFile = (projectId: number) => {
     },
   });
 };
+
+
+export const useUpdateFile = (projectId: number) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ fileId, fileName }: { fileId: number; fileName: string }) =>
+      fileService.updateFile(fileId, fileName),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: fileKeys.byProject(projectId) });
+    },
+  });
+};

@@ -30,7 +30,7 @@ export const fileService = {
         return res.json();
     },
 
-    getSignedUrl: async (filePath: string): Promise<string> => {
+    getSignedUrl: async (filePath: string): Promise<{ url: string }> => {
         const res = await fetch(`${API_URL}/files/signed-url?filePath=${encodeURIComponent(filePath)}`, {
             method: "GET",
             credentials: "include",
@@ -45,6 +45,21 @@ export const fileService = {
         const res = await fetch(`${API_URL}/files/${fileId}`, {
             method: "DELETE",
             credentials: "include",
+        });
+        if (!res.ok) {
+            throw new Error(await res.text());
+        }
+        return res.json();
+    },
+
+    updateFile: async (fileId: number, fileName: string): Promise<ProjectFile> => {
+        const res = await fetch(`${API_URL}/files/${fileId}`, {
+            method: "PATCH",
+            credentials: "include",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ file_name: fileName }),
         });
         if (!res.ok) {
             throw new Error(await res.text());

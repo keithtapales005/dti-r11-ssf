@@ -77,7 +77,7 @@ export class FilesService {
             throw new Error(error.message);
         }
 
-        return data.signedUrl;
+        return { url: data.signedUrl };
     }
 
     async deleteFile(fileId: number, performedBy: number) {
@@ -110,5 +110,27 @@ export class FilesService {
         });
 
         return { message: 'File deleted successfully' };
+    }
+
+    async updateFile(fileId: number, fileName: string, performedBy: number) {
+        const { data, error } = await supabase
+            .from(this.table)
+            .update({ file_name: fileName, updated_at: new Date().toISOString() })
+            .eq('file_id', fileId)
+            .select()
+            .single();
+
+        if (error) {
+            throw new Error(error.message);
+        }
+
+        await supabase.from('logs').insert({
+            user_id: performedBy,
+            table_name: this.table,
+            affected_id: fileId,
+            action: 'UPDATE',
+        });
+
+        return data;
     }
 }

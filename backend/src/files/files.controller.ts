@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Delete,
   Body,
   Param,
@@ -16,6 +17,7 @@ import { FilesService } from './files.service';
 import { CreateFileDto } from './dto/create_file.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import { UpdateFileDto } from './dto/update_file.dto';
 
 interface UploadedFileType {
   buffer: Buffer;
@@ -58,6 +60,11 @@ export class FilesController {
     @Get('signed-url')
     getSignedUrl(@Query('filePath') filePath: string) {
         return this.filesService.getSignedUrl(filePath);
+    }
+
+    @Patch(':id')
+    update(@Param('id') id: number, @Body() dto: UpdateFileDto, @CurrentUser('user_id') userId: number) {
+        return this.filesService.updateFile(id, dto.file_name, userId);
     }
 
     @Delete(':id')

@@ -8,7 +8,10 @@ import UploadField from "@/app/components/upload-field";
 import { ToastContainer, type ToastProps } from "@/app/components/dynamic-toast";
 import { ProjectFile } from "@/lib/types/file";
 import { ChecklistResponse } from "@/lib/types/checklist";
-import { useUploadFile, useDeleteFile } from "@/lib/mutations/fileMutation";
+import { useUploadFile, useDeleteFile, useUpdateFile } from "@/lib/mutations/fileMutation";
+import { fileService } from "@/lib/services/file.service";
+import InputForms from "@/app/components/input-forms";
+import InputField from "@/app/components/input-field";
 import {
   useCreateChecklistItem,
   useUpdateChecklistItem,
@@ -43,6 +46,13 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
 
   const uploadFile = useUploadFile(projectId);
   const deleteFile = useDeleteFile(projectId);
+  const updateFile = useUpdateFile(projectId);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingFile, setEditingFile] = useState<ProjectFile | null>(null);
+  const [editFileName, setEditFileName] = useState("");
+  const [openingFileId, setOpeningFileId] = useState<number | null>(null);
+  const [previewFile, setPreviewFile] = useState<ProjectFile | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const createChecklistItem = useCreateChecklistItem();
   const updateChecklistItem = useUpdateChecklistItem(projectId);
   const deleteChecklistItem = useDeleteChecklistItem(projectId);
@@ -112,6 +122,60 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
       onError: (error: any) =>
         addToast({ type: "error", title: "Delete Failed", description: error?.message, duration: 3000 }),
     });
+  };
+
+  const handleOpenFile = async (file: ProjectFile) => {
+    setOpeningFileId(file.file_id);
+    try {
+      const { url } = await fileService.getSignedUrl(file.file_path);
+      setPreviewFile(file);
+      setPreviewUrl(url);
+    } catch (error) {
+      addToast({
+        type: "error",
+        title: "Unable to Open File",
+        description: error instanceof Error ? error.message : "Something went wrong.",
+        duration: 3000,
+      });
+    } finally {
+      setOpeningFileId(null);
+    }
+  };
+
+  const handleClosePreview = () => {
+    setPreviewFile(null);
+    setPreviewUrl(null);
+  };
+
+  const handleOpenEdit = (file: ProjectFile) => {
+    setEditingFile(file);
+    setEditFileName(file.file_name);
+    setIsEditOpen(true);
+  };
+
+  const handleCloseEdit = () => {
+    setIsEditOpen(false);
+    setEditingFile(null);
+    setEditFileName("");
+  };
+
+  const handleEditSubmit = () => {
+    if (!editFileName.trim() || !editingFile) {
+      addToast({ type: "warning", title: "Missing Name", description: "File name cannot be empty.", duration: 3000 });
+      return;
+    }
+
+    updateFile.mutate(
+      { fileId: editingFile.file_id, fileName: editFileName.trim() },
+      {
+        onSuccess: () => {
+          addToast({ type: "success", title: "File Renamed", description: "", duration: 3000 });
+          handleCloseEdit();
+        },
+        onError: (error: any) =>
+          addToast({ type: "error", title: "Rename Failed", description: error?.message, duration: 3000 }),
+      },
+    );
   };
 
   const handleAddChecklistItem = () => {
@@ -271,7 +335,14 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
               {filteredFiles.map((file) => (
                 <tr key={file.file_id}>
                   <td className="py-3 font-medium text-gray-900">
-                    {file.file_name}
+                    <button
+                      type="button"
+                      onClick={() => handleOpenFile(file)}
+                      disabled={openingFileId === file.file_id}
+                      className="text-left text-[#2563EB] hover:underline disabled:opacity-50"
+                    >
+                      {openingFileId === file.file_id ? "Opening..." : file.file_name}
+                    </button>
                     <div className="text-xs text-gray-400">{file.file_type.split("/")[1] || file.file_type}</div>
                   </td>
                   <td className="py-3 text-gray-700">{formatFileSize(file.file_size)}</td>
@@ -279,8 +350,14 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
                   <td className="py-3 text-gray-500">{file.created_at.split("T")[0]}</td>
                   <td className="py-3 text-right">
                     <button
+                      onClick={() => handleOpenEdit(file)}
+                      className="p-1.5 text-[#2563EB] hover:bg-blue-50 rounded"
+                    >
+                      <PencilIcon size={16} stroke="#2563EB" strokeWidth={2} />
+                    </button>
+                    <button
                       onClick={() => handleDeleteFile(file.file_id)}
-                      className="p-1.5 text-[#DC2636] hover:bg-red-50 rounded"
+                      className="p-1.5 text-[#DC2636] hover:bg-red-50 rounded ml-1"
                     >
                       <TrashIcon size={16} stroke="#DC2636" strokeWidth={2} />
                     </button>
@@ -314,6 +391,72 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
               disabled={isSubmitting}
               accept="*/*"
             />
+          </div>
+        </div>
+      )}
+
+      {isEditOpen && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <InputForms
+            title="Rename File"
+            width="340px"
+            height="auto"
+            onCancel={handleCloseEdit}
+            onSecondaryAction={handleCloseEdit}
+            secondaryButtonLabel="Cancel"
+            buttonLabel={updateFile.isPending ? "Saving..." : "Save"}
+            buttonDisabled={updateFile.isPending}
+            onSubmit={handleEditSubmit}
+          >
+            <InputField
+              label="File Name"
+              name="editFileName"
+              placeholder="Enter file name"
+              value={editFileName}
+              onChange={setEditFileName}
+            />
+          </InputForms>
+        </div>
+      )}
+
+      {previewFile && previewUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-black/50" onClick={handleClosePreview} aria-hidden="true" />
+          <div className="relative bg-white rounded-lg shadow-lg w-full max-w-3xl h-[80vh] mx-4 flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3">
+              <h3 className="text-sm font-semibold text-[#182286] truncate pr-4">{previewFile.file_name}</h3>
+              <div className="flex items-center gap-2 shrink-0">
+                
+                <a
+                  href={previewUrl}
+                  download={previewFile.file_name}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-md bg-[#182286] px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-800"
+                >
+                  Download
+                </a>
+                <button
+                  type="button"
+                  onClick={handleClosePreview}
+                  className="rounded-md border border-gray-200 px-3 py-1.5 text-xs font-semibold text-[#182286] hover:bg-gray-50"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto bg-gray-50">
+              {previewFile.file_type.startsWith("image/") ? (
+                <img src={previewUrl} alt={previewFile.file_name} className="w-full h-full object-contain" />
+              ) : previewFile.file_type === "application/pdf" ? (
+                <iframe src={previewUrl} title={previewFile.file_name} className="w-full h-full" />
+              ) : (
+                <div className="flex h-full items-center justify-center text-center text-sm text-gray-500 p-6">
+                  This file type can&apos;t be previewed here. Use the Download button above to view it.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

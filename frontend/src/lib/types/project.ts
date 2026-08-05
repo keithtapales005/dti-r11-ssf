@@ -14,6 +14,8 @@ export interface Project {
   updated_at: string;
   updated_by_user_id?: number | null;
   proposed_by?: number | null;
+  project_status?: { status_name: string } | null;
+  province?: { province_name: string } | null;
 }
 
 export interface CreateProjectDto {
@@ -27,6 +29,7 @@ export interface CreateProjectDto {
   date_established?: string;
   industry?: string;
   project_cost?: number;
+  proposed_by?: string;
 }
 
 export interface UpdateProjectDto extends Partial<CreateProjectDto> { }

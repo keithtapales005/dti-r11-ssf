@@ -18,6 +18,7 @@ import { ApprovedProjectModule } from './approved-project/approved-project.modul
 import { AuditModule } from './audit/audit.module';
 import { ProjectConcernModule } from './project_concern/project_concern.module';
 import { ProjectDocumentChecklistModule } from './project_document_checklist/project_document_checklist.module';
+import { FilesModule } from './files/files.module';
 
 @Module({
   imports: [
@@ -37,8 +38,8 @@ import { ProjectDocumentChecklistModule } from './project_document_checklist/pro
     ProjectStatusModule,
     ApprovedProjectModule,
     AuditModule,
-    ProjectConcernModule,
     ProjectDocumentChecklistModule,
+    FilesModule,
   ],
   controllers: [AppController, ProvinceController],
   providers: [AppService, ProvinceService],

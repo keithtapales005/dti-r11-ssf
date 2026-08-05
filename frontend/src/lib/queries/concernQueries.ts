@@ -13,3 +13,6 @@ export const useConcernsByProject = (projectId: number) => {
     enabled: !!projectId,
   });
 };
+
+// Alias for pages expecting a shorter name
+export const useConcerns = useConcernsByProject;

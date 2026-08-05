@@ -20,6 +20,8 @@ import { useConcernsByProject } from "@/lib/queries/concernQueries";
 import { useCreateConcern } from "@/lib/mutations/concernMutation";
 import Dropdown, { DropdownOption } from "@/app/components/dropdown";
 import { useChecklistByProject } from "@/lib/queries/checklistQueries";
+import { useFilesByProject } from "@/lib/queries/fileQueries";
+import { useUploadFile, useDeleteFile } from "@/lib/mutations/fileMutation";
 import { useCreateChecklistItem, useUpdateChecklistItem, useDeleteChecklistItem } from "@/lib/mutations/checklistMutation";
 
 // ------------------------------------------------------------------
@@ -267,6 +269,9 @@ export default function FilePage() {
   const router = useRouter();
   const projectId = Number(searchParams.get("projectId"));
   const { data: realProject, isLoading: projectLoading, error: projectError } = useProject(projectId);
+  const { data: realFiles, isLoading: filesLoading } = useFilesByProject(projectId);
+  const uploadFile = useUploadFile(projectId);
+  const deleteFileMutation = useDeleteFile(projectId);
 
   const provinceName = searchParams.get("province") || "Davao City";
   const paramSsfNumber = searchParams.get("ssfNumber");
@@ -277,7 +282,20 @@ export default function FilePage() {
   const userRole: UserRole =
     searchParams.get("role") === "Viewer" ? "Viewer" : "Admin"; // TODO: Replace with backend auth/session role
 
-  const [files, setFiles] = useState<FileRecord[]>(INITIAL_FILES);
+  const files: FileRecord[] = useMemo(() => {
+    if (!realFiles) return [];
+    return realFiles.map((f) => ({
+      id: String(f.file_id),
+      fileName: f.file_name,
+      fileLink: f.external_link ?? undefined,
+      fileSize: f.file_size < 1024 * 1024
+        ? `${(f.file_size / 1024).toFixed(1)} KB`
+        : `${(f.file_size / (1024 * 1024)).toFixed(2)} MB`,
+      uploadedBy: `User #${f.created_by}`,
+      uploadedDate: f.created_at.split("T")[0],
+      fileType: f.file_type.split("/")[1] || f.file_type,
+    }));
+  }, [realFiles]);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -632,73 +650,20 @@ export default function FilePage() {
 
       setIsSubmitting(true);
       try {
-        const selectedFile = payload.files[0];
-
         if (editingFile) {
-          const trimmedFileName = payload.fileName.trim();
-          const nextFileLink = selectedFile
-            ? payload.fileLink.trim() || createObjectUrl(selectedFile)
-            : payload.fileLink.trim() || editingFile.fileLink;
-
-          if (
-            editingFile.fileLink?.startsWith("blob:") &&
-            editingFile.fileLink !== nextFileLink
-          ) {
-            URL.revokeObjectURL(editingFile.fileLink);
-            blobUrlsRef.current.delete(editingFile.fileLink);
-          }
-
-          const updatedFile = {
-            ...editingFile,
-            fileName: trimmedFileName,
-            fileLink: nextFileLink,
-            fileSize: selectedFile
-              ? (
-                  (selectedFile.size / (1024 * 1024)).toFixed(2) + " MB"
-                ).replace(/\.0+ MB/, " MB")
-              : editingFile.fileSize,
-            fileType: selectedFile
-              ? getFileTypeFromFile(selectedFile, trimmedFileName)
-              : getFileTypeFromName(trimmedFileName) === "unknown"
-                ? editingFile.fileType
-                : getFileTypeFromName(trimmedFileName),
-            uploadedDate: new Date().toISOString().split("T")[0],
-          };
-
-          setFiles((prev) =>
-            prev.map((file) => (file.id === editingFile.id ? updatedFile : file)),
-          );
           addToast({
-            type: "success",
-            title: "Success",
-            description: "File updated successfully.",
+            type: "warning",
+            title: "Not Supported Yet",
+            description: "Editing an uploaded file isn't supported yet — please delete and re-upload instead.",
           });
         } else {
-          if (!selectedFile) {
-            addToast({
-              type: "error",
-              title: "Validation Error",
-              description: "Please select at least one file to upload.",
-            });
-            return;
-          }
+          const selectedFile = payload.files[0];
 
-          const fileSize = (
-            (selectedFile.size / (1024 * 1024)).toFixed(2) + " MB"
-          ).replace(/\.0+ MB/, " MB");
-          const trimmedFileName = payload.fileName.trim();
-          const resolvedFileType = getFileTypeFromFile(selectedFile, trimmedFileName);
-          const resolvedFileLink = payload.fileLink.trim() || createObjectUrl(selectedFile);
+          await uploadFile.mutateAsync({
+            fileName: payload.fileName.trim(),
+            file: selectedFile,
+          });
 
-          const newFile = await simulateFileUpload(
-            trimmedFileName,
-            fileSize,
-            currentUser.username,
-            resolvedFileLink,
-            resolvedFileType,
-          );
-
-          setFiles((prev) => [newFile, ...prev]);
           addToast({
             type: "success",
             title: "Success",
@@ -719,7 +684,7 @@ export default function FilePage() {
         setIsSubmitting(false);
       }
     },
-    [addToast, createObjectUrl, editingFile, handleCloseModal],
+    [addToast, editingFile, handleCloseModal, uploadFile],
   );
 
   const handleConfirmDeleteProject = useCallback(async () => {

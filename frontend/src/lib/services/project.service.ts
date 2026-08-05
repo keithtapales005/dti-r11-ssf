@@ -53,4 +53,15 @@ export const projectService = {
         }
         return res.json();
     },
+
+    deleteProject: async (id: number) => {
+        const res = await fetch(`${API_URL}/project-management/${id}`, {
+            method: "DELETE",
+            credentials: "include",
+        });
+        if (!res.ok) {
+            throw new Error(await res.text());
+        }
+        return res.json();
+    },
 }

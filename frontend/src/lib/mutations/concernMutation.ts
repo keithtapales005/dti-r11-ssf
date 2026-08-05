@@ -14,14 +14,32 @@ export const useCreateConcern = () => {
   });
 };
 
-export const useUpdateConcern = () => {
+export const useUpdateConcern = (projectId?: number) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ id, dto }: { id: number; dto: UpdateProjectConcernDto }) =>
       concernService.updateConcern(id, dto),
-    onSuccess: (_data, _variables, context: any) => {
-      // We'll pass projectId through context when calling this, so we know which cache to invalidate
+    onSuccess: () => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: concernKeys.byProject(projectId) });
+      }
+    },
+  });
+};
+
+// Alias for pages expecting a shorter name
+export const useEditConcern = useUpdateConcern;
+
+export const useDeleteConcern = (projectId?: number) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => concernService.deleteConcern(id),
+    onSuccess: () => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: concernKeys.byProject(projectId) });
+      }
     },
   });
 };

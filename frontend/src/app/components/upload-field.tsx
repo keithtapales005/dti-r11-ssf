@@ -162,8 +162,8 @@ export default function UploadField({
   };
 
   const isEditMode = mode === 'edit';
-  const secondaryActionLabel = isEditMode ? 'Delete Project' : 'Cancel';
-  const primaryActionLabel = isEditMode ? 'Save Changes' : 'Add Project';
+  const secondaryActionLabel = isEditMode ? 'Delete File' : 'Cancel';
+  const primaryActionLabel = isEditMode ? 'Save Changes' : 'Add File';
 
   const handleSecondaryAction = () => {
     if (isEditMode) {

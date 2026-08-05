@@ -42,4 +42,15 @@ export const concernService = {
         }
         return res.json();
     },
+
+    deleteConcern: async (id: number) => {
+        const res = await fetch(`${API_URL}/project-concern/${id}`, {
+            method: "DELETE",
+            credentials: "include",
+        });
+        if (!res.ok) {
+            throw new Error(await res.text());
+        }
+        return res.json();
+    },
 }

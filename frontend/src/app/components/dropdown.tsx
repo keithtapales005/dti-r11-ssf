@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { HiOutlineSelector } from "react-icons/hi";
 
 /* ================= TYPES ================= */
@@ -40,6 +41,34 @@ export default function Dropdown({
 }: DropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuRect, setMenuRect] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  /* ================= TRACK BUTTON POSITION FOR PORTAL MENU ================= */
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const updatePosition = () => {
+      if (!buttonRef.current) return;
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuRect({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    };
+
+    updatePosition();
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [isOpen]);
 
   /* ================= ACTIVE SELECTED ================= */
 
@@ -54,10 +83,10 @@ export default function Dropdown({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
+      const target = event.target as Node;
+      const insideDropdown = dropdownRef.current?.contains(target);
+      const insideMenu = menuRef.current?.contains(target);
+      if (!insideDropdown && !insideMenu) {
         setIsOpen(false);
       }
     };
@@ -114,6 +143,7 @@ export default function Dropdown({
           <div style={{ gridColumn: 1, gridRow: 1 }}>
             {/* BUTTON */}
             <button
+              ref={buttonRef}
               onClick={() => !disabled && setIsOpen(!isOpen)}
               disabled={disabled}
               className="w-full flex justify-between items-center px-3 py-2.5 text-[12px] rounded-[5px] transition-all"
@@ -140,27 +170,33 @@ export default function Dropdown({
             </button>
 
             {/* MENU */}
-            {isOpen && !disabled && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-[5px] z-50">
-                <div className="max-h-40 overflow-y-auto p-1.5">
-                  {options.length ? (
-                    options.map((option) => (
-                      <button
-                        key={option.id}
-                        onClick={() => handleSelect(option)}
-                        className="w-full text-left px-4 py-2 text-[12px] text-[#182286] hover:bg-indigo-100 rounded-[5px]"
-                      >
-                        {option.label}
-                      </button>
-                    ))
-                  ) : (
-                    <div className="text-center text-gray-400 py-2">
-                      No options available
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+            {isOpen && !disabled && mounted && menuRect &&
+              createPortal(
+                <div
+                  ref={menuRef}
+                  className="fixed bg-white border border-gray-200 rounded-[5px] shadow-lg z-[9999]"
+                  style={{ top: menuRect.top, left: menuRect.left, width: menuRect.width }}
+                >
+                  <div className="max-h-40 overflow-y-auto p-1.5">
+                    {options.length ? (
+                      options.map((option) => (
+                        <button
+                          key={option.id}
+                          onClick={() => handleSelect(option)}
+                          className="w-full text-left px-4 py-2 text-[12px] text-[#182286] hover:bg-indigo-100 rounded-[5px]"
+                        >
+                          {option.label}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="text-center text-gray-400 py-2">
+                        No options available
+                      </div>
+                    )}
+                  </div>
+                </div>,
+                document.body
+              )}
           </div>
         </div>
 

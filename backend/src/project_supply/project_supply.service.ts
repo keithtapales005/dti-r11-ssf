@@ -10,14 +10,6 @@ export class ProjectSupplyService {
     async createSupply(dto: CreateSupplyDto, performedBy: number) {
         const { data, error } = await supabase.from(this.table).insert([dto]).select().single();
         if (error) throw new Error(error.message);
-
-        await supabase.from('logs').insert({
-            user_id: performedBy,
-            table_name: this.table,
-            affected_id: data.project_supply_id,
-            action: 'CREATE',
-        });
-
         return { message: 'Supply added successfully', data };
     }
 
@@ -29,14 +21,6 @@ export class ProjectSupplyService {
             .select()
             .single();
         if (error) throw new Error(error.message);
-
-        await supabase.from('logs').insert({
-            user_id: performedBy,
-            table_name: this.table,
-            affected_id: data.project_supply_id,
-            action: 'UPDATE',
-        });
-
         return { message: 'Supply updated successfully', data };
     }
 
@@ -48,15 +32,7 @@ export class ProjectSupplyService {
             .select()
             .single();
         if (error) throw new Error(error.message);
-
-        await supabase.from('logs').insert({
-            user_id: performedBy,
-            table_name: this.table,
-            affected_id: data.project_supply_id,
-            action: 'DELETE',
-        });
-
-        return { message: 'Supply deleted successfully' };
+        return { message: 'Supply deleted successfully', data };
     }
 
     async getSuppliesForProject(projectId: number) {

@@ -4,22 +4,26 @@ import { CreateSupplyDto } from './dto/create-supply.dto';
 import { UpdateSupplyDto } from './dto/update-supply.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import { Audit } from '../audit/audit.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('project-supply')
 export class ProjectSupplyController {
-    constructor(private readonly projectSupplyService: ProjectSupplyService) {}
+    constructor(private readonly projectSupplyService: ProjectSupplyService) { }
 
+    @Audit('CREATE', 'project_supply')
     @Post()
     create(@Body() dto: CreateSupplyDto, @CurrentUser('user_id') userId: number) {
         return this.projectSupplyService.createSupply(dto, userId);
     }
 
+    @Audit('UPDATE', 'project_supply')
     @Patch(':id')
     update(@Param('id') id: number, @Body() dto: UpdateSupplyDto, @CurrentUser('user_id') userId: number) {
         return this.projectSupplyService.updateSupply(id, dto, userId);
     }
 
+    @Audit('DELETE', 'project_supply')
     @Delete(':id')
     remove(@Param('id') id: number, @CurrentUser('user_id') userId: number) {
         return this.projectSupplyService.deleteSupply(id, userId);

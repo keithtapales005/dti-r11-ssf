@@ -241,5 +241,38 @@ export class UsersService {
     return { message: 'User rejected', user: data };
   }
 
+  async deleteUser(userId: number, performedBy: number) {
+    const anonymizedHash = await bcrypt.hash(
+      `deleted-${userId}-${Date.now()}`,
+      10,
+    );
+
+    const { error } = await supabase
+      .from(this.table)
+      .update({
+        username: `deleted_user_${userId}`,
+        first_name: 'Deleted',
+        last_name: 'User',
+        password_hash: anonymizedHash,
+        department_id: null,
+        user_status_id: 3, // Deleted
+      })
+      .eq('user_id', userId);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    await supabase.from('logs').insert({
+      user_id: performedBy,
+      table_name: this.table,
+      affected_id: userId,
+      action: 'DELETE',
+    });
+
+    return { message: 'User anonymized and marked as deleted' };
+  }
+
 }
+
 

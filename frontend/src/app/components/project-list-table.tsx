@@ -20,7 +20,7 @@ export default function ProjectListTable({ projects, onViewProject }: ProjectLis
                         <th className="p-4 tracking-wide font-normal">Coordinator / Project Title</th>
                         <th className="p-4 tracking-wide text-center font-normal">Status</th>
                         <th className="p-4 tracking-wide font-normal">Last Updated</th>
-                        <th className="p-4 tracking-wide text-right rounded-tr-lg font-normal">Action</th>
+                        <th className="p-4 tracking-wide text-right rounded-tr-lg font-normal"></th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 bg-white">

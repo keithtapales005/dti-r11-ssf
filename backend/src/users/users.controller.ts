@@ -4,6 +4,7 @@ import {
   Post,
   Get,
   Patch,
+  Delete,
   Param,
   UseGuards,
 } from '@nestjs/common';
@@ -64,6 +65,15 @@ export class UsersController {
     @CurrentUser('user_id') userId: number,
   ) {
     return this.usersService.rejectUser(id, userId);
+  }
+
+  @Roles(Role.SUPERADMIN)
+  @Delete(':id')
+  async deleteUser(
+    @Param('id') id: number,
+    @CurrentUser('user_id') userId: number,
+  ) {
+    return this.usersService.deleteUser(id, userId);
   }
 
 

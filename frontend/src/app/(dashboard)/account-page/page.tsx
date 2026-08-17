@@ -142,6 +142,7 @@ const ACCESS_FILTER_OPTIONS: DropdownOption[] = [
   { id: "active", label: "Active", value: "Active" },
   { id: "blocked", label: "Blocked", value: "Blocked" },
   { id: "pending", label: "Pending Verification", value: "Pending Verification" },
+  { id: "deleted", label: "Deleted", value: "Deleted" },
 ];
 
 const DEPARTMENT_FILTER_OPTIONS: DropdownOption[] = [
@@ -291,10 +292,12 @@ export default function AccountPage() {
     }
     if (accessFilter) {
       result = result.filter((acc) => acc.access === accessFilter);
+    } else {
+      // Hide deleted accounts by default; only show when explicitly filtered
+      result = result.filter((acc) => acc.access !== "Deleted");
     }
     return result;
   }, [accounts, searchQuery, permissionFilter, departmentFilter, accessFilter]);
-
   const totalPages = Math.max(1, Math.ceil(filteredAccounts.length / 7));
   const currentPageSafe = Math.min(currentPage, totalPages);
   const paginatedAccounts = useMemo(() => {
@@ -992,11 +995,6 @@ export default function AccountPage() {
                 error={modalFormErrors.department}
                 variant="secondary"
               />
-              {modalFormErrors.department && (
-                <p className="text-xs mt-1 text-[#DC2626] font-medium">
-                  {modalFormErrors.department}
-                </p>
-              )}
             </div>
 
             {/* Permission */}
@@ -1022,11 +1020,6 @@ export default function AccountPage() {
                 error={modalFormErrors.permission}
                 variant="secondary"
               />
-              {modalFormErrors.permission && (
-                <p className="text-xs mt-1 text-[#DC2626] font-medium">
-                  {modalFormErrors.permission}
-                </p>
-              )}
             </div>
 
             {/* Access Control Radio Buttons */}
@@ -1134,11 +1127,6 @@ export default function AccountPage() {
                 error={approveFormErrors.department}
                 variant="secondary"
               />
-              {approveFormErrors.department && (
-                <p className="text-xs mt-1 text-[#DC2626] font-medium">
-                  {approveFormErrors.department}
-                </p>
-              )}
             </div>
 
             <div>
@@ -1163,11 +1151,6 @@ export default function AccountPage() {
                 error={approveFormErrors.permission}
                 variant="secondary"
               />
-              {approveFormErrors.permission && (
-                <p className="text-xs mt-1 text-[#DC2626] font-medium">
-                  {approveFormErrors.permission}
-                </p>
-              )}
             </div>
           </InputForms>
         </div>

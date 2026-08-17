@@ -95,7 +95,7 @@ export class ProjectManagementService {
 
     const { data, error, count } = await supabase
       .from(this.table)
-      .select('*', { count: 'exact' })
+      .select('*, project_status(status_name), province(province_name)', { count: 'exact' })
       .range(from, to);
     if (error) {
       throw new Error(error.message);

@@ -31,11 +31,18 @@ export class AuditInterceptor implements NestInterceptor {
       tap((response) => {
         if (!userId) return;
 
+        const idFieldMap: Record<string, string> = {
+          users: 'user_id',
+          project: 'project_id',
+          project_concern: 'project_concern_id',
+          project_supply: 'project_supply_id',
+        };
+
+        const idField = tableName ? idFieldMap[tableName] : undefined;
+
         const affectedId =
+          (idField && response?.data?.[idField]) ??
           response?.data?.user_id ??
-          response?.data?.project_id ??
-          response?.data?.project_concern_id ??
-          response?.data?.project_supply_id ??
           response?.user?.user_id ??
           request.params?.id;
 

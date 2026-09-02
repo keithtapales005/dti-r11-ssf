@@ -22,14 +22,7 @@ export class ProjectConcernService {
             throw new Error(error.message);
         }
 
-        await supabase.from('logs').insert({
-            user_id: performedBy,
-            table_name: this.table,
-            affected_id: data.project_concern_id,
-            action: 'CREATE',
-        });
-
-        return { message: 'Concern reported successfully' };
+        return { message: 'Concern reported successfully', data };
     }
 
     async updateConcern(id: number, updateProjectConcernDto: UpdateProjectConcernDto, performedBy: number) {
@@ -42,13 +35,7 @@ export class ProjectConcernService {
         if (error) {
             throw new Error(error.message);
         }
-        await supabase.from('logs').insert({
-            user_id: performedBy,
-            table_name: this.table,
-            affected_id: data.project_concern_id,
-            action: 'UPDATE',
-        });
-        return { message: 'Concern updated successfully' };
+        return { message: 'Concern updated successfully', data };
     }
 
     async getConcern(id: number) {
@@ -66,11 +53,11 @@ export class ProjectConcernService {
 
     async getConcernsByProject(projectId: number) {
         const { data, error } = await supabase
-        .from(this.table)
-        .select('*')
-        .eq('project_id', projectId)
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false });
+            .from(this.table)
+            .select('*')
+            .eq('project_id', projectId)
+            .is('deleted_at', null)
+            .order('created_at', { ascending: false });
 
         if (error) {
             throw new Error(error.message);
@@ -81,23 +68,16 @@ export class ProjectConcernService {
 
     async deleteConcern(id: number, performedBy: number) {
         const { data, error } = await supabase
-        .from(this.table)
-        .update({ deleted_at: new Date().toISOString() })
-        .eq('project_concern_id', id)
-        .select()
-        .single();
+            .from(this.table)
+            .update({ deleted_at: new Date().toISOString() })
+            .eq('project_concern_id', id)
+            .select()
+            .single();
 
         if (error) {
             throw new Error(error.message);
         }
 
-        await supabase.from('logs').insert({
-            user_id: performedBy,
-            table_name: this.table,
-            affected_id: id,
-            action: 'DELETE',
-        });
-
-        return { message: 'Concern deleted successfully' };
+        return { message: 'Concern deleted successfully', data };
     }
 }

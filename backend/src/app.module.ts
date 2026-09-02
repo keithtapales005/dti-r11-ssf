@@ -19,6 +19,7 @@ import { AuditModule } from './audit/audit.module';
 import { ProjectConcernModule } from './project_concern/project_concern.module';
 import { ProjectDocumentChecklistModule } from './project_document_checklist/project_document_checklist.module';
 import { FilesModule } from './files/files.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { FilesModule } from './files/files.module';
     AuditModule,
     ProjectDocumentChecklistModule,
     FilesModule,
+    DashboardModule,
   ],
   controllers: [AppController, ProvinceController],
   providers: [AppService, ProvinceService],

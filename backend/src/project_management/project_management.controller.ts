@@ -4,22 +4,26 @@ import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
+import { Audit } from '../audit/audit.decorator';
 
 @UseGuards(JwtAuthGuard)
 @Controller('project-management')
 export class ProjectManagementController {
-    constructor(private readonly projectManagementService: ProjectManagementService) {}
+    constructor(private readonly projectManagementService: ProjectManagementService) { }
 
+    @Audit('CREATE', 'project')
     @Post()
     create(@Body() dto: CreateProjectDto, @CurrentUser('user_id') userId: number) {
         return this.projectManagementService.createProject(dto, userId);
     }
 
+    @Audit('UPDATE', 'project')
     @Patch(':id')
     update(@Body() dto: UpdateProjectDto, @Param('id') id: number, @CurrentUser('user_id') userId: number) {
         return this.projectManagementService.updateProject(id, dto, userId);
     }
 
+    @Audit('DELETE', 'project')
     @Delete(':id')
     remove(@Param('id') id: number, @CurrentUser('user_id') userId: number) {
         return this.projectManagementService.deleteProject(id, userId);

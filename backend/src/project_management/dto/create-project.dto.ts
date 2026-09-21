@@ -41,4 +41,8 @@ export class CreateProjectDto {
   @IsOptional()
   @IsNumber()
   project_cost?: number;
+
+  @IsOptional()
+  @IsString()
+  proposed_by?: string;
 }

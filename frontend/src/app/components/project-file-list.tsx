@@ -366,7 +366,7 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
               ))}
             </tbody>
           </table>
-        )}
+        )}                                          
       </div>
 
       {isUploadOpen && (

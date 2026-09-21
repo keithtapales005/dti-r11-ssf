@@ -16,6 +16,7 @@ import ProjectConcernList from "@/app/components/project-concern-list";
 import ProjectFileList from "@/app/components/project-file-list";
 import { useFilesByProject } from "@/lib/queries/fileQueries";
 import { useChecklistByProject } from "@/lib/queries/checklistQueries";
+import ProjectAccomplishmentForm from "@/app/components/project-accomplishment-form";
 
 export default function ProjectDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -32,7 +33,7 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
   const editProject = useEditProject();
   const deleteProject = useDeleteProject();
 
-  const [activeTab, setActiveTab] = useState<"supplies" | "concerns" | "files">("files");
+  const [activeTab, setActiveTab] = useState<"supplies" | "concerns" | "files" | "accomplishment">("files");
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastProps[]>([]);
 
@@ -92,13 +93,17 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
   return (
     <div className="w-full min-h-screen bg-linear-to-b from-[#C8DBFD] to-[#F5F8FC] p-6">
       <div className="max-w-[1250px] mx-auto space-y-6">
-        <ProjectCardDetails
+                <ProjectCardDetails
           projectId={projectId}
           ssfNumber={project.ssf_number}
           businessName={project.business_name}
           projectTitle={project.project_title}
           status={(project.project_status?.status_name ?? "No Status") as any}
           filesCount={0}
+          yearLaunched={project.year_launched}
+          dateEstablished={project.date_established}
+          industry={project.industry}
+          projectCost={project.project_cost}
           isAdminView={true}
           onDelete={() => setIsDeleteOpen(true)}
           onSave={handleSave}
@@ -129,9 +134,18 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
           >
             Comments / Reports
           </button>
+          
+                    <button
+            onClick={() => setActiveTab("accomplishment")}
+            className={`px-4 py-2 rounded-full text-sm font-semibold border transition-colors ${
+              activeTab === "accomplishment" ? "border-[#182286] text-[#182286] bg-white" : "border-transparent text-gray-500 bg-white/60"
+            }`}
+          >
+            Accomplishment
+          </button>
         </div>
 
-        {activeTab === "supplies" ? (
+                {activeTab === "supplies" ? (
           suppliesLoading ? (
             <div className="bg-white rounded-lg p-6 text-gray-500">Loading supplies...</div>
           ) : (
@@ -143,6 +157,8 @@ export default function ProjectDetailsPage({ params }: { params: Promise<{ id: s
           ) : (
             <ProjectConcernList projectId={projectId} concerns={concerns ?? []} />
           )
+        ) : activeTab === "accomplishment" ? (
+          <ProjectAccomplishmentForm projectId={projectId} />
         ) : filesLoading || checklistLoading ? (
           <div className="bg-white rounded-lg p-6 text-gray-500">Loading files...</div>
         ) : (

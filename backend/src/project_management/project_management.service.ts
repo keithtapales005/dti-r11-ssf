@@ -20,6 +20,7 @@ export class ProjectManagementService {
         date_established: createProjectDto.date_established,
         industry: createProjectDto.industry,
         project_cost: createProjectDto.project_cost,
+        proposed_by: createProjectDto.proposed_by,
       },
     ]).select()
       .single();

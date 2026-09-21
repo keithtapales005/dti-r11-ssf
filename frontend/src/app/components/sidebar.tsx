@@ -16,6 +16,7 @@ import {
   FiMapPin,
   FiUser,
   FiUsers,
+  FiBarChart2,
 } from "react-icons/fi";
 import { usePathname, useRouter } from "next/navigation";
 import { useCurrentUser } from "@/lib/hooks/useAuth";
@@ -76,6 +77,7 @@ const MANAGEMENT_ITEMS: SidebarItem[] = [
 const MONITORING_ITEMS: SidebarItem[] = [
   { label: "Reports", href: "/approved-status-page", icon: FiFileText },
   { label: "Activity Logs", href: "/file-page", icon: FiClock },
+  { label: "Accomplishment", href: "/reports", icon: FiBarChart2 },
 ];
 
 function readStoredUser(): StoredUser | null {

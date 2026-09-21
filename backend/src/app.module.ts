@@ -20,6 +20,8 @@ import { ProjectConcernModule } from './project_concern/project_concern.module';
 import { ProjectDocumentChecklistModule } from './project_document_checklist/project_document_checklist.module';
 import { FilesModule } from './files/files.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { ProjectAccomplishmentModule } from './project_accomplishment/project_accomplishment.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -42,6 +44,8 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ProjectDocumentChecklistModule,
     FilesModule,
     DashboardModule,
+    ProjectAccomplishmentModule,
+    ReportsModule,
   ],
   controllers: [AppController, ProvinceController],
   providers: [AppService, ProvinceService],

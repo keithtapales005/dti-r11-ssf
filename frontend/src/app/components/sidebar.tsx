@@ -20,8 +20,8 @@ import {
 } from "react-icons/fi";
 import { usePathname, useRouter } from "next/navigation";
 import { useCurrentUser } from "@/lib/hooks/useAuth";
-import {useMutation} from "@tanstack/react-query";
-import {useLogout} from "@/lib/hooks/useAuth";
+import { useMutation } from "@tanstack/react-query";
+import { useLogout } from "@/lib/hooks/useAuth";
 type SidebarUser = {
   displayName?: string;
   username?: string;
@@ -76,7 +76,7 @@ const MANAGEMENT_ITEMS: SidebarItem[] = [
 
 const MONITORING_ITEMS: SidebarItem[] = [
   { label: "Reports", href: "/approved-status-page", icon: FiFileText },
-  { label: "Activity Logs", href: "/file-page", icon: FiClock },
+  { label: "Activity Logs", href: "/activity-log-page", icon: FiClock },
   { label: "Accomplishment", href: "/reports", icon: FiBarChart2 },
 ];
 
@@ -145,8 +145,8 @@ export default function Sidebar({
   const pathname = usePathname() || "/";
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [isProvinceExpanded, setIsProvinceExpanded] = useState(true);
-   const { data: currentUser, isLoading, error } = useCurrentUser();
-   const { mutate: logout } = useLogout();
+  const { data: currentUser, isLoading, error } = useCurrentUser();
+  const { mutate: logout } = useLogout();
   const [sidebarUser, setSidebarUser] = useState<SidebarUser>(() =>
     buildSidebarUser(null, user),
   );
@@ -170,17 +170,17 @@ export default function Sidebar({
 
   const sectionLabelClassName =
     "text-[14px] font-semibold tracking-[0.16em] text-white/60 uppercase";
-    
+
   return (
     <aside
-  className={`flex h-screen shrink-0 border-r border-white/10
+      className={`flex h-screen shrink-0 border-r border-white/10
     bg-[#182286]
     shadow-[4px_0_4px_0_rgba(0,0,0,0.25)]
     transition-[width] duration-300 ease-out
     ${isCollapsed ? "w-[120px]" : "w-[301px]"}
     ${overlay ? "fixed top-0 left-0 z-50" : "relative"}
     ${className}`}
->
+    >
       <div className="flex h-full min-h-full w-full flex-col gap-6 overflow-y-auto px-4 py-8 text-white">
         <div className={`flex ${isCollapsed ? "justify-center" : "justify-end"}`}>
           <button
@@ -268,9 +268,8 @@ export default function Sidebar({
                     <Link
                       key={province.label}
                       href={province.href}
-                      className={`rounded-[6px] px-3 py-2 text-[14px] text-white/85 transition-colors hover:bg-white/10 hover:text-white ${
-                        matchesPath(pathname, province.href) ? "bg-white/10 text-white" : ""
-                      }`}
+                      className={`rounded-[6px] px-3 py-2 text-[14px] text-white/85 transition-colors hover:bg-white/10 hover:text-white ${matchesPath(pathname, province.href) ? "bg-white/10 text-white" : ""
+                        }`}
                     >
                       {province.label}
                     </Link>
@@ -299,15 +298,14 @@ export default function Sidebar({
           <button
             type="button"
             onClick={() => {
-              logout(undefined,{
+              logout(undefined, {
                 onSuccess: () => {
                   router.push("/login-page");
                 }
               });
             }}
-            className={`flex w-full items-center rounded-[10px] px-3 py-3 text-left transition-colors hover:bg-white/10 ${
-              isCollapsed ? "justify-center gap-0" : "gap-3"
-            }`}
+            className={`flex w-full items-center rounded-[10px] px-3 py-3 text-left transition-colors hover:bg-white/10 ${isCollapsed ? "justify-center gap-0" : "gap-3"
+              }`}
             aria-label="Open user profile"
           >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-[#182286] font-semibold">

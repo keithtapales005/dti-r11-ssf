@@ -7,6 +7,7 @@ import { supabase } from 'src/supabase/supabase.client';
 export class ProjectManagementService {
 
   private readonly table = 'project';
+
   async createProject(createProjectDto: CreateProjectDto, performedBy: number) {
     const { data, error } = await supabase.from(this.table).insert([
       {
@@ -28,13 +29,6 @@ export class ProjectManagementService {
       throw new Error(error.message);
     }
 
-    await supabase.from('logs').insert({
-      user_id: performedBy,
-      table_name: this.table,
-      affected_id: data.project_id,
-      action: 'CREATE',
-    });
-
     return { message: 'Project created successfully', data };
   }
 
@@ -47,13 +41,6 @@ export class ProjectManagementService {
       .single();
 
     if (error) throw new Error(error.message);
-
-    await supabase.from('logs').insert({
-      user_id: performedBy,
-      table_name: this.table,
-      affected_id: data.project_id,
-      action: 'UPDATE',
-    });
 
     return { message: 'Project updated successfully', data };
   }
@@ -68,14 +55,7 @@ export class ProjectManagementService {
 
     if (error) throw new Error(error.message);
 
-    await supabase.from('logs').insert({
-      user_id: performedBy,
-      table_name: this.table,
-      affected_id: data.project_id,
-      action: 'DELETE',
-    });
-
-    return { message: 'Project deleted successfully' };
+    return { message: 'Project deleted successfully', data };
   }
 
   async getProject(id: number) {
@@ -96,7 +76,7 @@ export class ProjectManagementService {
 
     const { data, error, count } = await supabase
       .from(this.table)
-      .select('*, project_status(status_name), province(province_name)', { count: 'exact' })
+      .select('*', { count: 'exact' })
       .range(from, to);
     if (error) {
       throw new Error(error.message);

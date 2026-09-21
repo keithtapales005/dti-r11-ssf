@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 // ============================================================================
 // TYPE DEFINITIONS & INTERFACES
 // ============================================================================
 
 interface PaginationPageItem {
-  pageNumber: number;
+  type: "page" | "ellipsis";
+  pageNumber?: number;
   isActive?: boolean;
+  key: string;
 }
 
 interface PaginationProps {
@@ -84,19 +86,17 @@ const NavButton: React.FC<NavButtonProps> = ({
     onClick={onClick}
     disabled={disabled}
     aria-label={ariaLabel || label}
-    className={`px-3 py-1 rounded-md flex justify-center items-center gap-2 transition-all ${
-      disabled
+    className={`px-3 py-1 rounded-md flex justify-center items-center gap-2 transition-all ${disabled
         ? "opacity-50 cursor-not-allowed"
         : "hover:bg-blue-50 active:bg-[#182286] cursor-pointer"
-    }`}
+      }`}
   >
     {direction === "previous" && (
       <>
         <ArrowIcon direction="left" color={disabled ? "#6D7380" : "#182286"} />
         <div
-          className={`justify-start text-base font-medium font-['Inter'] whitespace-nowrap ${
-            disabled ? "text-gray-400" : "text-blue-900"
-          }`}
+          className={`justify-start text-base font-medium font-['Inter'] whitespace-nowrap ${disabled ? "text-gray-400" : "text-blue-900"
+            }`}
         >
           {label}
         </div>
@@ -105,9 +105,8 @@ const NavButton: React.FC<NavButtonProps> = ({
     {direction === "next" && (
       <>
         <div
-          className={`justify-start text-base font-medium font-['Inter'] whitespace-nowrap ${
-            disabled ? "text-gray-400" : "text-[#182286]"
-          }`}
+          className={`justify-start text-base font-medium font-['Inter'] whitespace-nowrap ${disabled ? "text-gray-400" : "text-[#182286]"
+            }`}
         >
           {label}
         </div>
@@ -140,14 +139,19 @@ const PageNumberButton: React.FC<PageNumberButtonProps> = ({
     onClick={onClick}
     aria-current={ariaCurrent}
     aria-label={ariaLabel || `Page ${pageNumber}`}
-    className={`w-8 h-8 rounded-lg flex justify-center items-center transition-all font-medium font-['Inter'] ${
-      isActive
+    className={`w-8 h-8 rounded-lg flex justify-center items-center transition-all font-medium font-['Inter'] ${isActive
         ? "bg-[#182286] text-white shadow-md"
         : "text-[#182286] hover:bg-blue-50 active:bg-blue-100"
-    }`}
+      }`}
   >
     {pageNumber}
   </button>
+);
+
+const Ellipsis: React.FC = () => (
+  <span className="w-8 h-8 flex justify-center items-center text-[#182286] font-medium font-['Inter'] select-none">
+    …
+  </span>
 );
 
 interface PageNumbersGroupProps {
@@ -169,18 +173,87 @@ const PageNumbersGroup: React.FC<PageNumbersGroupProps> = ({
       role="group"
       aria-label="Page numbers"
     >
-      {pages.map((page) => (
-        <PageNumberButton
-          key={`page-${page.pageNumber}`}
-          pageNumber={page.pageNumber}
-          isActive={page.isActive}
-          onClick={() => onPageClick?.(page.pageNumber)}
-          ariaCurrent={page.isActive ? "page" : undefined}
-        />
-      ))}
+      {pages.map((page) =>
+        page.type === "ellipsis" ? (
+          <Ellipsis key={page.key} />
+        ) : (
+          <PageNumberButton
+            key={page.key}
+            pageNumber={page.pageNumber!}
+            isActive={page.isActive}
+            onClick={() => onPageClick?.(page.pageNumber!)}
+            ariaCurrent={page.isActive ? "page" : undefined}
+          />
+        ),
+      )}
     </div>
   );
 };
+
+// ============================================================================
+// PAGE RANGE GENERATOR (with truncation)
+// ============================================================================
+
+function buildPageItems(
+  current: number,
+  total: number,
+  siblingCount = 1,
+): PaginationPageItem[] {
+  // Not enough pages to bother truncating — show them all
+  const totalNumbersToShow = siblingCount * 2 + 5; // first, last, current, 2 siblings, 2 ellipses
+  if (total <= totalNumbersToShow) {
+    return Array.from({ length: total }, (_, i) => {
+      const pageNumber = i + 1;
+      return {
+        type: "page" as const,
+        pageNumber,
+        isActive: pageNumber === current,
+        key: `page-${pageNumber}`,
+      };
+    });
+  }
+
+  const leftSibling = Math.max(current - siblingCount, 1);
+  const rightSibling = Math.min(current + siblingCount, total);
+
+  const showLeftEllipsis = leftSibling > 2;
+  const showRightEllipsis = rightSibling < total - 1;
+
+  const items: PaginationPageItem[] = [];
+
+  const pageItem = (pageNumber: number): PaginationPageItem => ({
+    type: "page",
+    pageNumber,
+    isActive: pageNumber === current,
+    key: `page-${pageNumber}`,
+  });
+
+  items.push(pageItem(1));
+
+  if (showLeftEllipsis) {
+    items.push({ type: "ellipsis", key: "ellipsis-left" });
+  } else {
+    for (let i = 2; i < leftSibling; i++) items.push(pageItem(i));
+  }
+
+  for (let i = leftSibling === 1 ? 2 : leftSibling; i <= (rightSibling === total ? total - 1 : rightSibling); i++) {
+    if (i > 1 && i < total) items.push(pageItem(i));
+  }
+
+  if (showRightEllipsis) {
+    items.push({ type: "ellipsis", key: "ellipsis-right" });
+  } else {
+    for (let i = rightSibling + 1; i < total; i++) items.push(pageItem(i));
+  }
+
+  items.push(pageItem(total));
+
+  return items;
+}
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
 
 export const Pagination: React.FC<PaginationProps> = ({
   currentPage = 1,
@@ -194,17 +267,11 @@ export const Pagination: React.FC<PaginationProps> = ({
 }) => {
   const [activePage, setActivePage] = useState(currentPage);
 
-  // Generate page items array
-  const getPageItems = useCallback((): PaginationPageItem[] => {
-    const pages: PaginationPageItem[] = [];
-    for (let i = 1; i <= totalPages; i++) {
-      pages.push({
-        pageNumber: i,
-        isActive: i === activePage,
-      });
-    }
-    return pages;
-  }, [activePage, totalPages]);
+  // Keep internal state in sync if the parent changes currentPage
+  // (e.g. resetting to page 1 after a filter change) without remounting.
+  useEffect(() => {
+    setActivePage(currentPage);
+  }, [currentPage]);
 
   const handlePreviousClick = useCallback(() => {
     if (activePage > 1 && !disabled) {
@@ -234,7 +301,7 @@ export const Pagination: React.FC<PaginationProps> = ({
     [disabled, onPageChange],
   );
 
-  const pageItems = getPageItems();
+  const pageItems = buildPageItems(activePage, totalPages);
 
   return (
     <nav
@@ -242,7 +309,6 @@ export const Pagination: React.FC<PaginationProps> = ({
       aria-label="Pagination"
     >
       <div className="flex justify-start items-center gap-2">
-        {/* Previous Button */}
         <NavButton
           label="Previous"
           direction="previous"
@@ -251,12 +317,10 @@ export const Pagination: React.FC<PaginationProps> = ({
           ariaLabel="Go to previous page"
         />
 
-        {/* Page Numbers */}
         {showPageNumbers && (
           <PageNumbersGroup pages={pageItems} onPageClick={handlePageClick} />
         )}
 
-        {/* Next Button */}
         <NavButton
           label="Next"
           direction="next"

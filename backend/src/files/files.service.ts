@@ -10,7 +10,8 @@ export class FilesService {
 
     async uploadFile(dto: CreateFileDto, fileBuffer: Buffer, originalFileName: string, mimeType: string, fileSize: number, performedBy: number) {
         const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-        const storagePath = `project-${dto.project_id}/${uniqueSuffix}-${originalFileName}`;
+        const sanitizedFileName = originalFileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const storagePath = `project-${dto.project_id}/${uniqueSuffix}-${sanitizedFileName}`;
 
         const { error: uploadError } = await supabase.storage
             .from(this.bucket)

@@ -50,7 +50,9 @@ export default function LoginPage() {
     },
 
   });
-  const handleSubmit = async () => {
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!username || !password) {
       addToast({
         type: "warning",
@@ -199,7 +201,7 @@ export default function LoginPage() {
           </div>
 
           {/* Form Section */}
-          <div className="flex flex-col gap-10">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-10">
             {/* Username Input Field */}
             <InputField
               label="Username"
@@ -225,7 +227,7 @@ export default function LoginPage() {
             {/* Login Button */}
             <DynamicButton
               label={loginMutation.isPending ? "Signing In..." : "Sign In"}
-              onClick={handleSubmit}
+              type="submit"
               disabled={loginMutation.isPending}
               variant="blue"
               fullWidth
@@ -247,7 +249,7 @@ export default function LoginPage() {
               </Link>
             </p>
 
-          </div>
+          </form>
         </div>
 
         {/* DTI Logo Footer */}

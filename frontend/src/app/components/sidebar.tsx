@@ -7,8 +7,6 @@ import type { IconType } from "react-icons";
 import {
   FiClock,
   FiChevronDown,
-  FiChevronLeft,
-  FiChevronRight,
   FiFileText,
   FiHome,
   FiLogOut,
@@ -143,7 +141,8 @@ export default function Sidebar({
 }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname() || "/";
-  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
+  const isCollapsed = true;
+  const [isHovering, setIsHovering] = useState(false);
   const [isProvinceExpanded, setIsProvinceExpanded] = useState(true);
   const { data: currentUser, isLoading, error } = useCurrentUser();
   const { mutate: logout } = useLogout();
@@ -156,6 +155,8 @@ export default function Sidebar({
     setSidebarUser(buildSidebarUser(storedUser, user));
   }, [user]);
 
+  const effectiveCollapsed = isCollapsed && !isHovering;
+
   const activeProvince = useMemo(
     () => PROVINCES.some((province) => matchesPath(pathname, province.href)),
     [pathname],
@@ -164,7 +165,7 @@ export default function Sidebar({
   const resolveItemClassName = (active: boolean) =>
     [
       "group flex w-full items-center rounded-[6px] px-3 py-3 text-[15px] font-medium transition-colors duration-200",
-      isCollapsed ? "justify-center gap-0" : "justify-start gap-3",
+      effectiveCollapsed ? "justify-center gap-0" : "justify-start gap-3",
       active ? "bg-[#2B3BB2] text-white" : "text-white/90 hover:bg-white/10",
     ].join(" ");
 
@@ -173,28 +174,20 @@ export default function Sidebar({
 
   return (
     <aside
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
       className={`flex h-screen shrink-0 border-r border-white/10
     bg-[#182286]
     shadow-[4px_0_4px_0_rgba(0,0,0,0.25)]
     transition-[width] duration-300 ease-out
-    ${isCollapsed ? "w-[120px]" : "w-[301px]"}
+    ${effectiveCollapsed ? "w-[120px]" : "w-[301px]"}
     ${overlay ? "fixed top-0 left-0 z-50" : "relative"}
     ${className}`}
     >
       <div className="flex h-full min-h-full w-full flex-col gap-6 overflow-y-auto px-4 py-8 text-white">
-        <div className={`flex ${isCollapsed ? "justify-center" : "justify-end"}`}>
-          <button
-            type="button"
-            onClick={() => setIsCollapsed((current) => !current)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-white transition-colors hover:bg-white/10"
-            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {isCollapsed ? <FiChevronRight size={20} /> : <FiChevronLeft size={20} />}
-          </button>
-        </div>
 
-        <div className={`flex flex-col items-center gap-3 ${isCollapsed ? "pt-1" : "pt-2"}`}>
-          <div className={`relative ${isCollapsed ? "h-12 w-12" : "h-14 w-28"}`}>
+        <div className={`flex flex-col items-center gap-3 ${effectiveCollapsed ? "pt-1" : "pt-2"}`}>
+          <div className={`relative ${effectiveCollapsed ? "h-12 w-12" : "h-14 w-28"}`}>
             <Image
               src="/ssf-logo.png"
               alt="SSF Logo"
@@ -205,7 +198,7 @@ export default function Sidebar({
             />
           </div>
 
-          {!isCollapsed && (
+          {!effectiveCollapsed && (
             <div className="text-center leading-tight">
               <p className="text-[17px] font-semibold">Shared Service Facilities</p>
               <p className="text-[11px] italic text-white/75">
@@ -222,21 +215,21 @@ export default function Sidebar({
               return (
                 <Link key={item.label} href={item.href} className={resolveItemClassName(active)}>
                   <item.icon size={20} className="shrink-0" />
-                  {!isCollapsed && <span className="truncate">{item.label}</span>}
+                  {!effectiveCollapsed && <span className="truncate">{item.label}</span>}
                 </Link>
               );
             })}
           </div>
 
           <div className="flex flex-col gap-2 border-t border-white/15 pt-4">
-            {!isCollapsed && <p className={sectionLabelClassName}>Management</p>}
+            {!effectiveCollapsed && <p className={sectionLabelClassName}>Management</p>}
 
             {MANAGEMENT_ITEMS.map((item) => {
               const active = matchesPath(pathname, item.href, item.exact);
               return (
                 <Link key={item.label} href={item.href} className={resolveItemClassName(active)}>
                   <item.icon size={20} className="shrink-0" />
-                  {!isCollapsed && <span className="truncate">{item.label}</span>}
+                  {!effectiveCollapsed && <span className="truncate">{item.label}</span>}
                 </Link>
               );
             })}
@@ -250,8 +243,8 @@ export default function Sidebar({
                 aria-controls="sidebar-province-list"
               >
                 <FiMapPin size={20} className="shrink-0" />
-                {!isCollapsed && <span className="flex-1 truncate text-left">Provinces</span>}
-                {!isCollapsed && (
+                {!effectiveCollapsed && <span className="flex-1 truncate text-left">Provinces</span>}
+                {!effectiveCollapsed && (
                   <FiChevronDown
                     size={18}
                     className={`shrink-0 transition-transform ${isProvinceExpanded ? "rotate-0" : "-rotate-90"}`}
@@ -259,7 +252,7 @@ export default function Sidebar({
                 )}
               </button>
 
-              {!isCollapsed && isProvinceExpanded && (
+              {!effectiveCollapsed && isProvinceExpanded && (
                 <div
                   id="sidebar-province-list"
                   className="mt-2 flex flex-col gap-1 border-l border-white/25 pl-4"
@@ -280,14 +273,14 @@ export default function Sidebar({
           </div>
 
           <div className="flex flex-col gap-2 border-t border-white/15 pt-4">
-            {!isCollapsed && <p className={sectionLabelClassName}>Monitoring</p>}
+            {!effectiveCollapsed && <p className={sectionLabelClassName}>Monitoring</p>}
 
             {MONITORING_ITEMS.map((item) => {
               const active = matchesPath(pathname, item.href, item.exact);
               return (
                 <Link key={item.label} href={item.href} className={resolveItemClassName(active)}>
                   <item.icon size={20} className="shrink-0" />
-                  {!isCollapsed && <span className="truncate">{item.label}</span>}
+                  {!effectiveCollapsed && <span className="truncate">{item.label}</span>}
                 </Link>
               );
             })}
@@ -304,7 +297,7 @@ export default function Sidebar({
                 }
               });
             }}
-            className={`flex w-full items-center rounded-[10px] px-3 py-3 text-left transition-colors hover:bg-white/10 ${isCollapsed ? "justify-center gap-0" : "gap-3"
+            className={`flex w-full items-center rounded-[10px] px-3 py-3 text-left transition-colors hover:bg-white/10 ${effectiveCollapsed ? "justify-center gap-0" : "gap-3"
               }`}
             aria-label="Open user profile"
           >
@@ -312,7 +305,7 @@ export default function Sidebar({
               {sidebarUser.initials || <FiUser size={18} />}
             </div>
 
-            {!isCollapsed && (
+            {!effectiveCollapsed && (
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[14px] font-semibold text-white">
                   {currentUser?.first_name} {currentUser?.last_name}
@@ -323,7 +316,7 @@ export default function Sidebar({
               </div>
             )}
 
-            {!isCollapsed && <FiLogOut size={16} className="shrink-0 text-white/80" />}
+            {!effectiveCollapsed && <FiLogOut size={16} className="shrink-0 text-white/data/70" />}
           </button>
         </div>
       </div>

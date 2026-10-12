@@ -79,13 +79,13 @@ export class UsersService {
   }
 
   async editUser(dto: UpdateUserDto, user_id: number, performedBy: number) {
+    const { password, ...rest } = dto;
+
     const { data, error } = await supabase
       .from(this.table)
       .update({
-        ...dto,
-        password_hash: dto.password
-          ? await this.hashPassword(dto.password)
-          : undefined,
+        ...rest,
+        ...(password ? { password_hash: await this.hashPassword(password) } : {}),
       })
       .eq('user_id', user_id)
       .select()

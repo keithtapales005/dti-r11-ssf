@@ -23,7 +23,7 @@ import { ApproveUserDto } from './dto/approve-user.dto';
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
 
-  @Roles(Role.SUPERADMIN, Role.ADMIN)
+  @Roles(Role.SUPERADMIN)
   @Post()
   create(
     @Body() dto: CreateUserDto,
@@ -32,7 +32,7 @@ export class UsersController {
     return this.usersService.createUser(dto, userId);
   }
 
-  @Roles(Role.SUPERADMIN, Role.ADMIN)
+  @Roles(Role.SUPERADMIN)
   @Patch(':id')
   async editUser(
     @Param('id') id: number,

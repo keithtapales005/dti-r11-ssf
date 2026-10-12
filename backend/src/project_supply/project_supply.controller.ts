@@ -5,8 +5,12 @@ import { UpdateSupplyDto } from './dto/update-supply.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { Audit } from '../audit/audit.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { Role } from 'src/auth/enum/role.enum';
 
-@UseGuards(JwtAuthGuard)
+
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('project-supply')
 export class ProjectSupplyController {
     constructor(private readonly projectSupplyService: ProjectSupplyService) { }
@@ -23,6 +27,7 @@ export class ProjectSupplyController {
         return this.projectSupplyService.updateSupply(id, dto, userId);
     }
 
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
     @Audit('DELETE', 'project_supply')
     @Delete(':id')
     remove(@Param('id') id: number, @CurrentUser('user_id') userId: number) {

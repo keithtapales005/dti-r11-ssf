@@ -5,8 +5,12 @@ import { UpdateProjectConcernDto } from './dto/update_project_concern.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { Audit } from '../audit/audit.decorator';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { Role } from 'src/auth/enum/role.enum';
 
-@UseGuards(JwtAuthGuard)
+
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('project-concern')
 export class ProjectConcernController {
     constructor(private readonly projectConcernService: ProjectConcernService) { }
@@ -33,6 +37,7 @@ export class ProjectConcernController {
         return this.projectConcernService.getConcernsByProject(projectId);
     }
 
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
     @Audit('DELETE', 'project_concern')
     @Delete(':id')
     delete(@Param('id') id: number, @CurrentUser('user_id') userId: number) {

@@ -1,16 +1,16 @@
 import {
-  Controller,
-  Post,
-  Get,
-  Patch,
-  Delete,
-  Body,
-  Param,
-  Query,
-  UseGuards,
-  UseInterceptors,
-  UploadedFile,
-  BadRequestException,
+    Controller,
+    Post,
+    Get,
+    Patch,
+    Delete,
+    Body,
+    Param,
+    Query,
+    UseGuards,
+    UseInterceptors,
+    UploadedFile,
+    BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { FilesService } from './files.service';
@@ -18,18 +18,21 @@ import { CreateFileDto } from './dto/create_file.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { UpdateFileDto } from './dto/update_file.dto';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { Role } from 'src/auth/enum/role.enum';
 
 interface UploadedFileType {
-  buffer: Buffer;
-  originalname: string;
-  mimetype: string;
-  size: number;
+    buffer: Buffer;
+    originalname: string;
+    mimetype: string;
+    size: number;
 }
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('files')
 export class FilesController {
-    constructor(private readonly filesService: FilesService) {}
+    constructor(private readonly filesService: FilesService) { }
 
     @Post('upload')
     @UseInterceptors(FileInterceptor('file'))
@@ -67,6 +70,7 @@ export class FilesController {
         return this.filesService.updateFile(id, dto.file_name, userId);
     }
 
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
     @Delete(':id')
     delete(@Param('id') id: number, @CurrentUser('user_id') userId: number) {
         return this.filesService.deleteFile(id, userId);

@@ -110,25 +110,30 @@ export default function LoginPage() {
 
       {/* Left Side Content - Z-20 */}
       <div className="absolute left-0 bottom-0 w-1/2 h-80 pl-12 py-14 flex flex-col justify-end gap-2 z-16">
-        {/* SSF Logo and Title */}
-        <div className="flex items-center gap-3">
-          <div className="w-25 h-25 shrink-0 pl-5">
+        {/* Logos - DTI and SSF side by side */}
+        <div className="flex items-center justify-center gap-4">
+          <div className="relative w-20 h-20 flex items-center justify-center">
             <Image
-              src="/ssf-logo.png"
-              alt="SSF Logo"
-              width={400}
-              height={400}
+              width={80}
+              height={80}
+              src="/DTI.png"
+              alt="DTI Logo"
               className="w-full h-full object-contain"
             />
           </div>
-          <h2 className="text-3xl font-semibold" style={{ color: "#182286" }}>
-            Shared Service Facilities
-          </h2>
+          <div className="relative w-52 h-20 flex items-center justify-center">
+            <Image
+              width={208}
+              height={80}
+              src="/ssf-logo.png"
+              alt="SSF Logo"
+              className="w-full h-full object-contain"
+            />
+          </div>
         </div>
-
         {/* Tagline with Gradient - Using IM Fell Great Primer Font */}
         <h3
-          className="text-6xl font-normal italic"
+          className="text-5xl font-normal italic max-w-xl text-balance"
           style={{
             fontFamily: "var(--font-im-fell-great-primer), serif",
             backgroundImage: "linear-gradient(90deg, #182286 0%, #0052B3 100%)",
@@ -166,15 +171,26 @@ export default function LoginPage() {
         <div className="w-118.25 flex flex-col gap-12">
           {/* Header Section */}
           <div className="flex flex-col items-center gap-6 text-center">
-            {/* Logo - SSF Logo */}
-            <div className="relative w-52 h-20 flex items-center justify-center">
-              <Image
-                width={208}
-                height={80}
-                src="/ssf-logo.png"
-                alt="SSF Logo"
-                className="w-full h-full object-contain"
-              />
+            {/* Logos - DTI and SSF side by side */}
+            <div className="flex items-center justify-center gap-4">
+              <div className="relative w-20 h-20 flex items-center justify-center">
+                <Image
+                  width={80}
+                  height={80}
+                  src="/DTI.png"
+                  alt="DTI Logo"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div className="relative w-52 h-20 flex items-center justify-center">
+                <Image
+                  width={208}
+                  height={80}
+                  src="/ssf-logo.png"
+                  alt="SSF Logo"
+                  className="w-full h-full object-contain"
+                />
+              </div>
             </div>
 
             {/* Title */}
@@ -252,16 +268,7 @@ export default function LoginPage() {
           </form>
         </div>
 
-        {/* DTI Logo Footer */}
-        <div className="absolute bottom-6 right-6 w-20 h-20 flex items-center justify-center z-20">
-          <Image
-            width={80}
-            height={80}
-            src="/DTI.png"
-            alt="DTI Logo"
-            className="w-full h-full object-contain"
-          />
-        </div>
+
       </div>
 
       {/* Toast Container - Displays all notifications */}

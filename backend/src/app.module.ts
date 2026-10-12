@@ -23,6 +23,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { ProjectAccomplishmentModule } from './project_accomplishment/project_accomplishment.module';
 import { ReportsModule } from './reports/reports.module';
 import { LogsModule } from './logs/logs.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [

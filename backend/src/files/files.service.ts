@@ -1,12 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { CreateFileDto } from './dto/create_file.dto';
 import { supabase } from 'src/supabase/supabase.client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class FilesService {
 
     private readonly table = 'files';
     private readonly bucket = 'Files';
+
+    constructor(private readonly notificationsService: NotificationsService) { }
 
     async uploadFile(dto: CreateFileDto, fileBuffer: Buffer, originalFileName: string, mimeType: string, fileSize: number, performedBy: number) {
         const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
@@ -50,6 +53,8 @@ export class FilesService {
             affected_id: data.file_id,
             action: 'CREATE',
         });
+
+        await this.notificationsService.notifyFileUpload(data, performedBy);
 
         return data;
     }

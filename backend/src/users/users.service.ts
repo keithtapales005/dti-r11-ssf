@@ -6,12 +6,14 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './types/user.type';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { RegisterDto } from '../auth/dto/register.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class UsersService {
   private readonly table = 'users';
   private readonly PENDING_VERIFICATION_STATUS_ID = 4;
   private readonly DEFAULT_ROLE_ID = 3;
+  constructor(private readonly notificationsService: NotificationsService) { }
 
   async createUser(dto: CreateUserDto, performedBy: number) {
     const result = await this.checkUsername(dto.username);
@@ -165,7 +167,7 @@ export class UsersService {
     if (logError) {
       console.error('Failed to insert log:', logError);
     }
-
+    await this.notificationsService.notifySelfRegister(data.user_id, dto.username);
     return { message: 'Registration submitted. Your account is pending superadmin approval.' };
   }
 

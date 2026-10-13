@@ -15,12 +15,14 @@ import { Role } from 'src/auth/enum/role.enum';
 export class ProjectConcernController {
     constructor(private readonly projectConcernService: ProjectConcernService) { }
 
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
     @Audit('CREATE', 'project_concern')
     @Post()
     create(@Body() dto: CreateProjectConcernDto, @CurrentUser('user_id') userId: number) {
         return this.projectConcernService.createConcern(dto, userId);
     }
 
+    @Roles(Role.SUPERADMIN)
     @Audit('UPDATE', 'project_concern')
     @Patch(':id')
     update(@Body() dto: UpdateProjectConcernDto, @Param('id') id: number, @CurrentUser('user_id') userId: number) {
@@ -37,7 +39,7 @@ export class ProjectConcernController {
         return this.projectConcernService.getConcernsByProject(projectId);
     }
 
-    @Roles(Role.SUPERADMIN, Role.ADMIN)
+    @Roles(Role.SUPERADMIN)
     @Audit('DELETE', 'project_concern')
     @Delete(':id')
     delete(@Param('id') id: number, @CurrentUser('user_id') userId: number) {

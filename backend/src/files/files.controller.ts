@@ -34,6 +34,7 @@ interface UploadedFileType {
 export class FilesController {
     constructor(private readonly filesService: FilesService) { }
 
+    @Roles(Role.SUPERADMIN, Role.ADMIN)
     @Post('upload')
     @UseInterceptors(FileInterceptor('file'))
     async upload(
@@ -65,12 +66,13 @@ export class FilesController {
         return this.filesService.getSignedUrl(filePath);
     }
 
+    @Roles(Role.SUPERADMIN)
     @Patch(':id')
     update(@Param('id') id: number, @Body() dto: UpdateFileDto, @CurrentUser('user_id') userId: number) {
         return this.filesService.updateFile(id, dto.file_name, userId);
     }
 
-    @Roles(Role.SUPERADMIN, Role.ADMIN)
+    @Roles(Role.SUPERADMIN)
     @Delete(':id')
     delete(@Param('id') id: number, @CurrentUser('user_id') userId: number) {
         return this.filesService.deleteFile(id, userId);

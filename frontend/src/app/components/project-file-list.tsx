@@ -17,7 +17,8 @@ import {
   useUpdateChecklistItem,
   useDeleteChecklistItem,
 } from "@/lib/mutations/checklistMutation";
-
+import { usePermissions } from "@/lib/hooks/usePermissions";
+import { isForbiddenError } from "@/lib/utils/errors";
 interface ProjectFileListProps {
   projectId: number;
   files: ProjectFile[];
@@ -56,6 +57,7 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
   const createChecklistItem = useCreateChecklistItem();
   const updateChecklistItem = useUpdateChecklistItem(projectId);
   const deleteChecklistItem = useDeleteChecklistItem(projectId);
+  const { canAdd, canEdit, canDelete } = usePermissions();
 
   const addToast = useCallback((toast: Omit<ToastProps, "id">) => {
     const id = `${Date.now()}-${Math.random()}`;
@@ -65,6 +67,11 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
+
+  const handleError = (title: string) => (error: any) => {
+    if (isForbiddenError(error)) return;
+    addToast({ type: "error", title, description: error?.message, duration: 3000 });
+  };
 
   const filteredFiles = useMemo(() => {
     if (!searchQuery.trim()) return files;
@@ -105,6 +112,7 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
       addToast({ type: "success", title: "Success", description: "File uploaded successfully.", duration: 3000 });
       handleCloseUpload();
     } catch (error) {
+      if (isForbiddenError(error)) return;
       addToast({
         type: "error",
         title: "Error",
@@ -119,8 +127,7 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
   const handleDeleteFile = (fileId: number) => {
     deleteFile.mutate(fileId, {
       onSuccess: () => addToast({ type: "success", title: "File Deleted", description: "", duration: 3000 }),
-      onError: (error: any) =>
-        addToast({ type: "error", title: "Delete Failed", description: error?.message, duration: 3000 }),
+      onError: handleError("Delete Failed"),
     });
   };
 
@@ -172,8 +179,7 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
           addToast({ type: "success", title: "File Renamed", description: "", duration: 3000 });
           handleCloseEdit();
         },
-        onError: (error: any) =>
-          addToast({ type: "error", title: "Rename Failed", description: error?.message, duration: 3000 }),
+        onError: handleError("Rename Failed"),
       },
     );
   };
@@ -191,8 +197,7 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
           setNewDocumentName("");
           addToast({ type: "success", title: "Document Added", description: "", duration: 3000 });
         },
-        onError: (error: any) =>
-          addToast({ type: "error", title: "Failed to Add Document", description: error?.message, duration: 3000 }),
+        onError: handleError("Failed to Add Document"),
       },
     );
   };
@@ -201,16 +206,14 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
     updateChecklistItem.mutate(
       { id, dto: { status } },
       {
-        onError: (error: any) =>
-          addToast({ type: "error", title: "Failed to Update Status", description: error?.message, duration: 3000 }),
+        onError: handleError("Failed to Update Status"),
       },
     );
   };
 
   const handleDeleteChecklistItem = (id: string) => {
     deleteChecklistItem.mutate(id, {
-      onError: (error: any) =>
-        addToast({ type: "error", title: "Failed to Delete Item", description: error?.message, duration: 3000 }),
+      onError: handleError("Failed to Delete Item"),
     });
   };
 
@@ -254,24 +257,30 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
                 >
                   <span className="text-sm text-black">{item.document_name}</span>
                   <div className="flex items-center gap-2">
-                    <select
-                      value={item.status}
-                      onChange={(e) =>
-                        handleChecklistStatusChange(item.checklist_id, e.target.value as "Pending" | "Uploaded" | "Verified")
-                      }
-                      className="text-xs font-semibold rounded-md border border-gray-200 px-2 py-1 outline-none text-black"
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="Uploaded">Uploaded</option>
-                      <option value="Verified">Verified</option>
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteChecklistItem(item.checklist_id)}
-                      className="text-xs text-[#DC2636] hover:underline"
-                    >
-                      Remove
-                    </button>
+                    {canAdd ? (
+                      <select
+                        value={item.status}
+                        onChange={(e) =>
+                          handleChecklistStatusChange(item.checklist_id, e.target.value as "Pending" | "Uploaded" | "Verified")
+                        }
+                        className="text-xs font-semibold rounded-md border border-gray-200 px-2 py-1 outline-none text-black"
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Uploaded">Uploaded</option>
+                        <option value="Verified">Verified</option>
+                      </select>
+                    ) : (
+                      <span className="text-xs font-semibold text-gray-700">{item.status}</span>
+                    )}
+                    {canDelete && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteChecklistItem(item.checklist_id)}
+                        className="text-xs text-[#DC2636] hover:underline"
+                      >
+                        Remove
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -280,7 +289,7 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
               )}
             </div>
 
-            <div className="flex gap-2">
+            {canAdd && <div className="flex gap-2">
               <input
                 type="text"
                 placeholder="Enter required document name..."
@@ -296,7 +305,7 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
               >
                 {createChecklistItem.isPending ? "Adding..." : "Add"}
               </button>
-            </div>
+            </div>}
           </>
         )}
       </div>
@@ -305,13 +314,15 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
       <div className="bg-white rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-[#182286]">Files</h2>
-          <DynamicButton
-            label="Add File"
-            variant="blue"
-            icon={<PlusIcon size={16} stroke="#FEFEFE" strokeWidth={2} />}
-            iconPosition="left"
-            onClick={handleOpenUpload}
-          />
+          {canAdd && (
+            <DynamicButton
+              label="Add File"
+              variant="blue"
+              icon={<PlusIcon size={16} stroke="#FEFEFE" strokeWidth={2} />}
+              iconPosition="left"
+              onClick={handleOpenUpload}
+            />
+          )}
         </div>
 
         <div className="mb-4">
@@ -328,7 +339,9 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
                 <th className="py-2 font-medium">File Size</th>
                 <th className="py-2 font-medium">Uploaded By</th>
                 <th className="py-2 font-medium">Date</th>
-                <th className="py-2 font-medium text-right">Action</th>
+                {(canEdit || canDelete) && (
+                  <th className="py-2 font-medium text-right">Action</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -348,25 +361,31 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
                   <td className="py-3 text-gray-700">{formatFileSize(file.file_size)}</td>
                   <td className="py-3 text-gray-700">{`User #${file.created_by}`}</td>
                   <td className="py-3 text-gray-500">{file.created_at.split("T")[0]}</td>
-                  <td className="py-3 text-right">
-                    <button
-                      onClick={() => handleOpenEdit(file)}
-                      className="p-1.5 text-[#2563EB] hover:bg-blue-50 rounded"
-                    >
-                      <PencilIcon size={16} stroke="#2563EB" strokeWidth={2} />
-                    </button>
-                    <button
-                      onClick={() => handleDeleteFile(file.file_id)}
-                      className="p-1.5 text-[#DC2636] hover:bg-red-50 rounded ml-1"
-                    >
-                      <TrashIcon size={16} stroke="#DC2636" strokeWidth={2} />
-                    </button>
-                  </td>
+                  {(canEdit || canDelete) && (
+                    <td className="py-3 text-right">
+                      {canEdit && (
+                        <button
+                          onClick={() => handleOpenEdit(file)}
+                          className="p-1.5 text-[#2563EB] hover:bg-blue-50 rounded"
+                        >
+                          <PencilIcon size={16} stroke="#2563EB" strokeWidth={2} />
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button
+                          onClick={() => handleDeleteFile(file.file_id)}
+                          className="p-1.5 text-[#DC2636] hover:bg-red-50 rounded ml-1"
+                        >
+                          <TrashIcon size={16} stroke="#DC2636" strokeWidth={2} />
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
           </table>
-        )}                                          
+        )}
       </div>
 
       {isUploadOpen && (
@@ -426,7 +445,7 @@ export default function ProjectFileList({ projectId, files, checklistData }: Pro
             <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3">
               <h3 className="text-sm font-semibold text-[#182286] truncate pr-4">{previewFile.file_name}</h3>
               <div className="flex items-center gap-2 shrink-0">
-                
+
                 <a
                   href={previewUrl}
                   download={previewFile.file_name}

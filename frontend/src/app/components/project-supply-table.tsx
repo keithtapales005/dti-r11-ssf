@@ -7,6 +7,8 @@ import InputForms from "@/app/components/input-forms";
 import InputField from "@/app/components/input-field";
 import { useCreateSupply, useEditSupply, useDeleteSupply } from "@/lib/mutations/supplyMutation";
 import { ToastContainer, type ToastProps } from "@/app/components/dynamic-toast";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+import { isForbiddenError } from "@/lib/utils/errors";
 
 interface Supply {
   project_supply_id: number;
@@ -30,6 +32,7 @@ export default function ProjectSupplyTable({ projectId, supplies }: ProjectSuppl
   const createSupply = useCreateSupply();
   const editSupply = useEditSupply();
   const deleteSupply = useDeleteSupply();
+  const { canAdd, canEdit, canDelete } = usePermissions();
 
   const addToast = useCallback((toast: Omit<ToastProps, "id">) => {
     const id = `${Date.now()}-${Math.random()}`;
@@ -39,6 +42,11 @@ export default function ProjectSupplyTable({ projectId, supplies }: ProjectSuppl
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
+
+  const handleError = (title: string) => (error: any) => {
+    if (isForbiddenError(error)) return;
+    addToast({ type: "error", title, description: error?.message, duration: 3000 });
+  };
 
   const handleOpenAdd = () => {
     setItemName("");
@@ -65,7 +73,7 @@ export default function ProjectSupplyTable({ projectId, supplies }: ProjectSuppl
           setIsAddOpen(false);
           setItemName("");
         },
-        onError: (error: any) => addToast({ type: "error", title: "Add Failed", description: error?.message, duration: 3000 }),
+        onError: handleError("Add Failed"),
       }
     );
   };
@@ -82,7 +90,7 @@ export default function ProjectSupplyTable({ projectId, supplies }: ProjectSuppl
           setEditingId(null);
           setItemName("");
         },
-        onError: (error: any) => addToast({ type: "error", title: "Update Failed", description: error?.message, duration: 3000 }),
+        onError: handleError("Update Failed"),
       }
     );
   };
@@ -94,7 +102,7 @@ export default function ProjectSupplyTable({ projectId, supplies }: ProjectSuppl
     editSupply.mutate(
       { id: supply.project_supply_id, dto: { quantity: newQty } },
       {
-        onError: (error: any) => addToast({ type: "error", title: "Update Failed", description: error?.message, duration: 3000 }),
+        onError: handleError("Update Failed"),
       }
     );
   };
@@ -102,7 +110,7 @@ export default function ProjectSupplyTable({ projectId, supplies }: ProjectSuppl
   const handleDelete = (id: number) => {
     deleteSupply.mutate(id, {
       onSuccess: () => addToast({ type: "success", title: "Item Removed", description: "", duration: 3000 }),
-      onError: (error: any) => addToast({ type: "error", title: "Delete Failed", description: error?.message, duration: 3000 }),
+      onError: handleError("Delete Failed"),
     });
   };
 
@@ -111,13 +119,15 @@ export default function ProjectSupplyTable({ projectId, supplies }: ProjectSuppl
       <div className="bg-white rounded-lg p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-[#182286]">Supplies / Equipment</h2>
-          <DynamicButton
-            label="Add Item"
-            variant="blue"
-            icon={<PlusIcon size={16} stroke="#FEFEFE" strokeWidth={2} />}
-            iconPosition="left"
-            onClick={handleOpenAdd}
-          />
+          {canAdd && (
+            <DynamicButton
+              label="Add Item"
+              variant="blue"
+              icon={<PlusIcon size={16} stroke="#FEFEFE" strokeWidth={2} />}
+              iconPosition="left"
+              onClick={handleOpenAdd}
+            />
+          )}
         </div>
 
         {supplies.length === 0 ? (
@@ -128,7 +138,9 @@ export default function ProjectSupplyTable({ projectId, supplies }: ProjectSuppl
               <tr className="border-b border-gray-200 text-gray-500">
                 <th className="py-2 font-medium">Item Description</th>
                 <th className="py-2 font-medium text-center">Quantity</th>
-                <th className="py-2 font-medium text-right">Action</th>
+                {(canEdit || canDelete) && (
+                  <th className="py-2 font-medium text-right">Action</th>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -137,29 +149,39 @@ export default function ProjectSupplyTable({ projectId, supplies }: ProjectSuppl
                   <td className="py-3 font-medium text-gray-900">{supply.item_name}</td>
                   <td className="py-3">
                     <div className="flex items-center justify-center gap-3">
-                      <button
-                        onClick={() => handleQuantityChange(supply, -1)}
-                        className="w-6 h-6 flex items-center justify-center rounded border border-gray-300 text-[#182286] hover:bg-gray-100"
-                      >
-                        −
-                      </button>
+                      {canEdit && (
+                        <button
+                          onClick={() => handleQuantityChange(supply, -1)}
+                          className="w-6 h-6 flex items-center justify-center rounded border border-gray-300 text-[#182286] hover:bg-gray-100"
+                        >
+                          −
+                        </button>
+                      )}
                       <span className="font-semibold text-[#182286] w-4 text-center">{supply.quantity}</span>
-                      <button
-                        onClick={() => handleQuantityChange(supply, 1)}
-                        className="w-6 h-6 flex items-center justify-center rounded border border-gray-300 text-[#182286] hover:bg-gray-100"
-                      >
-                        +
-                      </button>
+                      {canEdit && (
+                        <button
+                          onClick={() => handleQuantityChange(supply, 1)}
+                          className="w-6 h-6 flex items-center justify-center rounded border border-gray-300 text-[#182286] hover:bg-gray-100"
+                        >
+                          +
+                        </button>
+                      )}
                     </div>
                   </td>
-                  <td className="py-3 text-right">
-                    <button onClick={() => handleOpenEdit(supply)} className="p-1.5 text-[#2563EB] hover:bg-blue-50 rounded">
-                      <PencilIcon size={16} stroke="#2563EB" strokeWidth={2} />
-                    </button>
-                    <button onClick={() => handleDelete(supply.project_supply_id)} className="p-1.5 text-[#DC2636] hover:bg-red-50 rounded ml-1">
-                      <TrashIcon size={16} stroke="#DC2636" strokeWidth={2} />
-                    </button>
-                  </td>
+                  {(canEdit || canDelete) && (
+                    <td className="py-3 text-right">
+                      {canEdit && (
+                        <button onClick={() => handleOpenEdit(supply)} className="p-1.5 text-[#2563EB] hover:bg-blue-50 rounded">
+                          <PencilIcon size={16} stroke="#2563EB" strokeWidth={2} />
+                        </button>
+                      )}
+                      {canDelete && (
+                        <button onClick={() => handleDelete(supply.project_supply_id)} className="p-1.5 text-[#DC2636] hover:bg-red-50 rounded ml-1">
+                          <TrashIcon size={16} stroke="#DC2636" strokeWidth={2} />
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

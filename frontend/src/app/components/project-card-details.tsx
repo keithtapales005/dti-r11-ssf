@@ -23,6 +23,31 @@ export interface ProjectCardDetailsProps {
   businessName: string;
   projectTitle: string;
   status:
+  | "Approved"
+  | "Established"
+  | "Operational"
+  | "Partially Operational"
+  | "Non-Operational"
+  | "Extended"
+  | "Transferred"
+  | "Fully Transferred"
+  | "Disposed"
+  | "No Status";
+  filesCount: number;
+  yearLaunched?: number | null;
+  dateEstablished?: string | null;
+  industry?: string | null;
+  projectCost?: number | null;
+  isAdminView?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onSave?: (project: {
+    ssfNumber: string;
+    businessName: string;
+    projectTitle: string;
+    status:
     | "Approved"
     | "Established"
     | "Operational"
@@ -33,29 +58,6 @@ export interface ProjectCardDetailsProps {
     | "Fully Transferred"
     | "Disposed"
     | "No Status";
-  filesCount: number;
-  yearLaunched?: number | null;
-  dateEstablished?: string | null;
-  industry?: string | null;
-  projectCost?: number | null;
-  isAdminView?: boolean;
-  onEdit?: () => void;
-  onDelete?: () => void;
-  onSave?: (project: {
-    ssfNumber: string;
-    businessName: string;
-    projectTitle: string;
-    status:
-      | "Approved"
-      | "Established"
-      | "Operational"
-      | "Partially Operational"
-      | "Non-Operational"
-      | "Extended"
-      | "Transferred"
-      | "Fully Transferred"
-      | "Disposed"
-      | "No Status";
     filesCount: number;
     yearLaunched?: number | null;
     dateEstablished?: string | null;
@@ -101,6 +103,8 @@ export const ProjectCardDetails: React.FC<ProjectCardDetailsProps> = ({
   industry,
   projectCost,
   isAdminView = false,
+  canEdit,
+  canDelete,
   onEdit,
   onDelete,
   onSave,
@@ -110,6 +114,8 @@ export const ProjectCardDetails: React.FC<ProjectCardDetailsProps> = ({
   const [isEditOpen, setIsEditOpen] = useState(false);
   const actionsRef = useRef<HTMLDivElement>(null);
   const updateProject = useUpdateProject();
+  const showEdit = canEdit ?? isAdminView;
+  const showDelete = canDelete ?? isAdminView;
   const [editForm, setEditForm] = useState({
     year,
     region,
@@ -260,99 +266,99 @@ export const ProjectCardDetails: React.FC<ProjectCardDetailsProps> = ({
         <div className="w-[1224px] inline-flex justify-start items-stretch">
           {/* Left Section - SSF Info */}
           <div className="w-[920px] inline-flex flex-col justify-start items-start gap-5">
-          {/* SSF No. */}
-          <div className="self-stretch flex flex-col justify-start items-start gap-2">
-            <div
-              className="self-stretch justify-start text-lg font-semibold font-['Inter']"
-              style={{ color: "#6D7380" }}
-            >
-              SSF No.
-            </div>
-            <div
-              className="self-stretch justify-start text-2xl font-semibold font-['Inter']"
-              style={{ color: "#2563EB" }}
-            >
-              {cardDetails.ssfNumber}
-            </div>
-          </div>
-
-          {/* Business Name */}
-          <div className="self-stretch flex flex-col justify-start items-start gap-2">
-            <div
-              className="self-stretch justify-start text-lg font-semibold font-['Inter']"
-              style={{ color: "#6D7380" }}
-            >
-              Business Name
-            </div>
-            <div className="self-stretch justify-start text-2xl font-bold font-['Inter'] text-black">
-              {cardDetails.businessName}
-            </div>
-          </div>
-
-          {/* Project Title */}
-          <div className="self-stretch flex flex-col justify-start items-start gap-2">
-            <div
-              className="self-stretch justify-start text-lg font-semibold font-['Inter']"
-              style={{ color: "#6D7380" }}
-            >
-              Project Title
-            </div>
-            <div className="self-stretch justify-start text-2xl font-bold font-['Inter'] text-black">
-              {cardDetails.projectTitle}
-            </div>
-          </div>
-
-          {/* Additional Details Row: Year Launched, Date Established, Industry, Project Cost */}
-          <div className="self-stretch grid grid-cols-2 gap-5 pt-2">
-            <div className="flex flex-col justify-start items-start gap-2">
+            {/* SSF No. */}
+            <div className="self-stretch flex flex-col justify-start items-start gap-2">
               <div
-                className="self-stretch justify-start text-sm font-semibold font-['Inter']"
+                className="self-stretch justify-start text-lg font-semibold font-['Inter']"
                 style={{ color: "#6D7380" }}
               >
-                Year Launched
+                SSF No.
               </div>
-              <div className="self-stretch justify-start text-base font-semibold font-['Inter'] text-black">
-                {cardDetails.yearLaunched ?? "—"}
+              <div
+                className="self-stretch justify-start text-2xl font-semibold font-['Inter']"
+                style={{ color: "#2563EB" }}
+              >
+                {cardDetails.ssfNumber}
               </div>
             </div>
 
-            <div className="flex flex-col justify-start items-start gap-2">
+            {/* Business Name */}
+            <div className="self-stretch flex flex-col justify-start items-start gap-2">
               <div
-                className="self-stretch justify-start text-sm font-semibold font-['Inter']"
+                className="self-stretch justify-start text-lg font-semibold font-['Inter']"
                 style={{ color: "#6D7380" }}
               >
-                Date Established
+                Business Name
               </div>
-              <div className="self-stretch justify-start text-base font-semibold font-['Inter'] text-black">
-                {formatDate(cardDetails.dateEstablished)}
+              <div className="self-stretch justify-start text-2xl font-bold font-['Inter'] text-black">
+                {cardDetails.businessName}
               </div>
             </div>
 
-            <div className="flex flex-col justify-start items-start gap-2">
+            {/* Project Title */}
+            <div className="self-stretch flex flex-col justify-start items-start gap-2">
               <div
-                className="self-stretch justify-start text-sm font-semibold font-['Inter']"
+                className="self-stretch justify-start text-lg font-semibold font-['Inter']"
                 style={{ color: "#6D7380" }}
               >
-                Industry
+                Project Title
               </div>
-              <div className="self-stretch justify-start text-base font-semibold font-['Inter'] text-black">
-                {cardDetails.industry ?? "—"}
+              <div className="self-stretch justify-start text-2xl font-bold font-['Inter'] text-black">
+                {cardDetails.projectTitle}
               </div>
             </div>
 
-            <div className="flex flex-col justify-start items-start gap-2">
-              <div
-                className="self-stretch justify-start text-sm font-semibold font-['Inter']"
-                style={{ color: "#6D7380" }}
-              >
-                Project Cost
+            {/* Additional Details Row: Year Launched, Date Established, Industry, Project Cost */}
+            <div className="self-stretch grid grid-cols-2 gap-5 pt-2">
+              <div className="flex flex-col justify-start items-start gap-2">
+                <div
+                  className="self-stretch justify-start text-sm font-semibold font-['Inter']"
+                  style={{ color: "#6D7380" }}
+                >
+                  Year Launched
+                </div>
+                <div className="self-stretch justify-start text-base font-semibold font-['Inter'] text-black">
+                  {cardDetails.yearLaunched ?? "—"}
+                </div>
               </div>
-              <div className="self-stretch justify-start text-base font-semibold font-['Inter'] text-black">
-                {formatCurrency(cardDetails.projectCost)}
+
+              <div className="flex flex-col justify-start items-start gap-2">
+                <div
+                  className="self-stretch justify-start text-sm font-semibold font-['Inter']"
+                  style={{ color: "#6D7380" }}
+                >
+                  Date Established
+                </div>
+                <div className="self-stretch justify-start text-base font-semibold font-['Inter'] text-black">
+                  {formatDate(cardDetails.dateEstablished)}
+                </div>
+              </div>
+
+              <div className="flex flex-col justify-start items-start gap-2">
+                <div
+                  className="self-stretch justify-start text-sm font-semibold font-['Inter']"
+                  style={{ color: "#6D7380" }}
+                >
+                  Industry
+                </div>
+                <div className="self-stretch justify-start text-base font-semibold font-['Inter'] text-black">
+                  {cardDetails.industry ?? "—"}
+                </div>
+              </div>
+
+              <div className="flex flex-col justify-start items-start gap-2">
+                <div
+                  className="self-stretch justify-start text-sm font-semibold font-['Inter']"
+                  style={{ color: "#6D7380" }}
+                >
+                  Project Cost
+                </div>
+                <div className="self-stretch justify-start text-base font-semibold font-['Inter'] text-black">
+                  {formatCurrency(cardDetails.projectCost)}
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
           {/* Divider and Right Section */}
           <div className="flex-1 flex justify-start items-stretch gap-14">
@@ -362,7 +368,7 @@ export const ProjectCardDetails: React.FC<ProjectCardDetailsProps> = ({
             {/* Right Section - Status, Files, Actions */}
             <div className="relative w-56 self-stretch flex flex-col items-start">
               {/* Action Menu - Only visible in admin view */}
-              {isAdminView && (
+              {isAdminView && (showEdit || showDelete) && (
                 <div className="absolute right-0 top-0" ref={actionsRef}>
                   <button
                     type="button"
@@ -375,22 +381,26 @@ export const ProjectCardDetails: React.FC<ProjectCardDetailsProps> = ({
 
                   {isActionsOpen && (
                     <div className="absolute right-0 top-12 z-20 min-w-44 overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-[0px_10px_30px_rgba(0,0,0,0.14)]">
-                      <button
-                        type="button"
-                        onClick={handleOpenEdit}
-                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-[#182286] transition-colors hover:bg-[#EEF2FF]"
-                      >
-                        <PencilIcon size={16} stroke="#2563EB" strokeWidth={2} />
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleDelete}
-                        className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-[#DC2636] transition-colors hover:bg-[#FEF2F2]"
-                      >
-                        <TrashIcon size={16} stroke="#DC2636" strokeWidth={2} />
-                        Delete
-                      </button>
+                      {showEdit && (
+                        <button
+                          type="button"
+                          onClick={handleOpenEdit}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-[#182286] transition-colors hover:bg-[#EEF2FF]"
+                        >
+                          <PencilIcon size={16} stroke="#2563EB" strokeWidth={2} />
+                          Edit
+                        </button>
+                      )}
+                      {showDelete && (
+                        <button
+                          type="button"
+                          onClick={handleDelete}
+                          className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-[#DC2636] transition-colors hover:bg-[#FEF2F2]"
+                        >
+                          <TrashIcon size={16} stroke="#DC2636" strokeWidth={2} />
+                          Delete
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

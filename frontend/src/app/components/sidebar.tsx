@@ -32,6 +32,7 @@ type SidebarItem = {
   href: string;
   icon: IconType;
   exact?: boolean;
+  roles?: number[]; // if set, only these role IDs see the item
 };
 
 type SidebarProvinceItem = {
@@ -69,7 +70,7 @@ const PRIMARY_ITEMS: SidebarItem[] = [
 ];
 
 const MANAGEMENT_ITEMS: SidebarItem[] = [
-  { label: "Accounts", href: "/account-page", icon: FiUsers },
+  { label: "Accounts", href: "/account-page", icon: FiUsers, roles: [1, 2] },
 ];
 
 const MONITORING_ITEMS: SidebarItem[] = [
@@ -145,6 +146,11 @@ export default function Sidebar({
   const [isHovering, setIsHovering] = useState(false);
   const [isProvinceExpanded, setIsProvinceExpanded] = useState(true);
   const { data: currentUser, isLoading, error } = useCurrentUser();
+  console.log("currentUser", currentUser);
+  const roleId = Number(currentUser?.role_id);
+  const visibleManagementItems = MANAGEMENT_ITEMS.filter(
+    (item) => !item.roles || item.roles.includes(roleId),
+  );
   const { mutate: logout } = useLogout();
   const [sidebarUser, setSidebarUser] = useState<SidebarUser>(() =>
     buildSidebarUser(null, user),
@@ -224,7 +230,7 @@ export default function Sidebar({
           <div className="flex flex-col gap-2 border-t border-white/15 pt-4">
             {!effectiveCollapsed && <p className={sectionLabelClassName}>Management</p>}
 
-            {MANAGEMENT_ITEMS.map((item) => {
+            {visibleManagementItems.map((item) => {
               const active = matchesPath(pathname, item.href, item.exact);
               return (
                 <Link key={item.label} href={item.href} className={resolveItemClassName(active)}>

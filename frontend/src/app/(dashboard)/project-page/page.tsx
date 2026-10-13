@@ -18,6 +18,8 @@ import { useCreateProject } from "@/lib/mutations/projectMutation";
 import { useProvinces } from "@/lib/queries/provinceQueries";
 import { useProjectStatuses } from "@/lib/queries/projectStatusQueries";
 import { useCurrentUser } from "@/lib/hooks/useAuth";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+import { isForbiddenError } from "@/lib/utils/errors";
 
 export default function ProjectPage() {
   const router = useRouter();
@@ -25,6 +27,7 @@ export default function ProjectPage() {
   const provinceName = searchParams.get("province") || "Davao City";
 
   const { data: currentUser } = useCurrentUser();
+  const { canAdd } = usePermissions();
   const { data: projectsResponse, isLoading: projectsLoading } = useProjects(1, 50);
   const { data: provinces } = useProvinces();
   const { data: statuses } = useProjectStatuses();
@@ -103,7 +106,7 @@ export default function ProjectPage() {
 
   const handleNavigateToDetails = (id: number) => {
     router.push(`/projects/${id}`);
-};
+  };
 
   const handleSubmit = () => {
     const selectedProvince = (provinces ?? []).find((p: any) => p.province_id === provinceId);
@@ -148,6 +151,7 @@ export default function ProjectPage() {
           setStatusId(undefined);
         },
         onError: (error: any) => {
+          if (isForbiddenError(error)) return;
           addToast({
             type: "error",
             title: "Failed to Create Project",
@@ -181,13 +185,15 @@ export default function ProjectPage() {
               />
             </div>
 
-            <DynamicButton
-              label="Add Project"
-              variant="blue"
-              icon={<PlusIcon size={16} stroke="#FEFEFE" strokeWidth={2} />}
-              iconPosition="left"
-              onClick={() => setIsAddModalOpen(true)}
-            />
+            {canAdd && (
+              <DynamicButton
+                label="Add Project"
+                variant="blue"
+                icon={<PlusIcon size={16} stroke="#FEFEFE" strokeWidth={2} />}
+                iconPosition="left"
+                onClick={() => setIsAddModalOpen(true)}
+              />
+            )}
           </div>
 
           <div className="bg-white rounded-lg shadow-xs overflow-hidden">

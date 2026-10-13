@@ -4,7 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './types/user.type';
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { RegisterDto } from '../auth/dto/register.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -18,7 +18,7 @@ export class UsersService {
   async createUser(dto: CreateUserDto, performedBy: number) {
     const result = await this.checkUsername(dto.username);
     if (!result.available) {
-      throw new Error('Username already exists');
+      throw new ConflictException('Username already exists');
     }
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const { data, error } = await supabase.from(this.table).insert([
@@ -81,17 +81,29 @@ export class UsersService {
   async editUser(dto: UpdateUserDto, user_id: number, performedBy: number) {
     const { password, ...rest } = dto;
 
+    const updates: Record<string, unknown> = { ...rest };
+    if (password) {
+      updates.password_hash = await this.hashPassword(password);
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return this.getUser(user_id); // nothing to change
+    }
+
     const { data, error } = await supabase
       .from(this.table)
-      .update({
-        ...rest,
-        ...(password ? { password_hash: await this.hashPassword(password) } : {}),
-      })
+      .update(updates)
       .eq('user_id', user_id)
-      .select()
+      .select(
+        'user_id, username, first_name, last_name, role_id, department_id, user_status_id',
+      )
       .maybeSingle();
+
     if (error) {
       throw new Error(error.message);
+    }
+    if (!data) {
+      throw new NotFoundException('User not found');
     }
 
     await supabase.from('logs').insert({

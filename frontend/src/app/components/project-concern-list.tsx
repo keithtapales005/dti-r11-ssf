@@ -7,6 +7,8 @@ import InputForms from "@/app/components/input-forms";
 import Dropdown, { DropdownOption } from "@/app/components/dropdown";
 import { ToastContainer, type ToastProps } from "@/app/components/dynamic-toast";
 import { useCreateConcern, useEditConcern, useDeleteConcern } from "@/lib/mutations/concernMutation";
+import { usePermissions } from "@/lib/hooks/usePermissions";
+import { isForbiddenError } from "@/lib/utils/errors";
 
 type ConcernCategory = "Challenge" | "Operational Concern" | "Grievance";
 
@@ -47,6 +49,7 @@ export default function ProjectConcernList({ projectId, concerns }: ProjectConce
   const createConcern = useCreateConcern();
   const editConcern = useEditConcern();
   const deleteConcern = useDeleteConcern();
+  const { canAdd, canEdit, canDelete } = usePermissions();
 
   const addToast = useCallback((toast: Omit<ToastProps, "id">) => {
     const id = `${Date.now()}-${Math.random()}`;
@@ -56,6 +59,11 @@ export default function ProjectConcernList({ projectId, concerns }: ProjectConce
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
+
+  const handleError = (title: string) => (error: any) => {
+    if (isForbiddenError(error)) return;
+    addToast({ type: "error", title, description: error?.message, duration: 3000 });
+  };
 
   const resetForm = () => {
     setCategory(undefined);
@@ -96,7 +104,10 @@ export default function ProjectConcernList({ projectId, concerns }: ProjectConce
             setIsConfirmOpen(false);
             resetForm();
           },
-          onError: (error: any) => addToast({ type: "error", title: "Update Failed", description: error?.message, duration: 3000 }),
+          onError: (error: any) => {
+            if (isForbiddenError(error)) setIsConfirmOpen(false);
+            handleError("Update Failed")(error);
+          },
         }
       );
     } else {
@@ -108,7 +119,10 @@ export default function ProjectConcernList({ projectId, concerns }: ProjectConce
             setIsConfirmOpen(false);
             resetForm();
           },
-          onError: (error: any) => addToast({ type: "error", title: "Failed to File Report", description: error?.message, duration: 3000 }),
+          onError: (error: any) => {
+            if (isForbiddenError(error)) setIsConfirmOpen(false);
+            handleError("Failed to File Report")(error);
+          },
         }
       );
     }
@@ -122,7 +136,7 @@ export default function ProjectConcernList({ projectId, concerns }: ProjectConce
   const handleDelete = (id: number) => {
     deleteConcern.mutate(id, {
       onSuccess: () => addToast({ type: "success", title: "Report Removed", description: "", duration: 3000 }),
-      onError: (error: any) => addToast({ type: "error", title: "Delete Failed", description: error?.message, duration: 3000 }),
+      onError: handleError("Delete Failed"),
     });
   };
 
@@ -160,14 +174,20 @@ export default function ProjectConcernList({ projectId, concerns }: ProjectConce
                     {new Date(concern.created_at).toLocaleString()}
                   </p>
                 </div>
-                <div className="flex gap-1 ml-4">
-                  <button onClick={() => handleOpenEdit(concern)} className="p-1.5 text-[#2563EB] hover:bg-blue-50 rounded">
-                    <PencilIcon size={16} stroke="#2563EB" strokeWidth={2} />
-                  </button>
-                  <button onClick={() => handleDelete(concern.project_concern_id)} className="p-1.5 text-[#DC2636] hover:bg-red-50 rounded">
-                    <TrashIcon size={16} stroke="#DC2636" strokeWidth={2} />
-                  </button>
-                </div>
+                {(canEdit || canDelete) && (
+                  <div className="flex gap-1 ml-4">
+                    {canEdit && (
+                      <button onClick={() => handleOpenEdit(concern)} className="p-1.5 text-[#2563EB] hover:bg-blue-50 rounded">
+                        <PencilIcon size={16} stroke="#2563EB" strokeWidth={2} />
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button onClick={() => handleDelete(concern.project_concern_id)} className="p-1.5 text-[#DC2636] hover:bg-red-50 rounded">
+                        <TrashIcon size={16} stroke="#DC2636" strokeWidth={2} />
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

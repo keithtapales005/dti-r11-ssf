@@ -18,6 +18,9 @@ import {
   useApproveUser,
   useRejectUser,
 } from "../../../lib/hooks/useUser";
+import { useCurrentUser } from "../../../lib/hooks/useAuth";
+import RoleGuard from "../../components/role-guard";
+import { isForbiddenError } from "../../../lib/utils/errors";
 
 const ROLE_MAP = {
   Admin: 2,
@@ -172,7 +175,11 @@ const PencilIcon = ({ size = 16, stroke = "#2563EB" }) => (
 // Main Component
 // ------------------------------------------------------------------
 
-export default function AccountPage() {
+function AccountPageContent() {
+  // Role check (only Superadmin can add, edit, approve, or reject accounts)
+  const { data: currentUser } = useCurrentUser();
+  const isSuperadmin = currentUser?.role_id === 1;
+
   // Data fetching (React Query)
   const { data: rawUsers = [], isLoading: usersLoading } = useUsers();
 
@@ -578,11 +585,13 @@ export default function AccountPage() {
       const errorMessage =
         error instanceof Error ? error.message : "Something went wrong.";
       closeSaveConfirmation();
-      addToast({
-        type: "error",
-        title: editingId ? "Update failed" : "Create failed",
-        description: errorMessage,
-      });
+      if (!isForbiddenError(error)) {
+        addToast({
+          type: "error",
+          title: editingId ? "Update failed" : "Create failed",
+          description: errorMessage,
+        });
+      }
     } finally {
       setModalLoading(false);
     }
@@ -617,11 +626,13 @@ export default function AccountPage() {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Something went wrong.";
-      addToast({
-        type: "error",
-        title: "Delete failed",
-        description: errorMessage,
-      });
+      if (!isForbiddenError(error)) {
+        addToast({
+          type: "error",
+          title: "Delete failed",
+          description: errorMessage,
+        });
+      }
     } finally {
       setModalLoading(false);
     }
@@ -681,7 +692,9 @@ export default function AccountPage() {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Something went wrong.";
-      addToast({ type: "error", title: "Approval failed", description: errorMessage });
+      if (!isForbiddenError(error)) {
+        addToast({ type: "error", title: "Approval failed", description: errorMessage });
+      }
     }
   }, [approvingAccount, approveFormData, approveUserMutation, addToast, closeApproveModal, resetPagination]);
 
@@ -700,7 +713,9 @@ export default function AccountPage() {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : "Something went wrong.";
-      addToast({ type: "error", title: "Rejection failed", description: errorMessage });
+      if (!isForbiddenError(error)) {
+        addToast({ type: "error", title: "Rejection failed", description: errorMessage });
+      }
     }
   }, [rejectingAccount, rejectUserMutation, addToast, closeRejectConfirmation, resetPagination]);
 
@@ -750,15 +765,17 @@ export default function AccountPage() {
               variant="primary"
             />
           </div>
-          <DynamicButton
-            label="Add Account"
-            variant="blue"
-            size="small"
-            iconPosition="left"
-            icon={<PlusIcon size={16} stroke="#FFFFFF" />}
-            onClick={openCreateModal}
-            className="shadow-[0_4px_10px_rgba(24,34,134,0.18)]"
-          />
+          {isSuperadmin && (
+            <DynamicButton
+              label="Add Account"
+              variant="blue"
+              size="small"
+              iconPosition="left"
+              icon={<PlusIcon size={16} stroke="#FFFFFF" />}
+              onClick={openCreateModal}
+              className="shadow-[0_4px_10px_rgba(24,34,134,0.18)]"
+            />
+          )}
         </div>
 
         {/* Table */}
@@ -770,7 +787,7 @@ export default function AccountPage() {
                 <div>Department</div>
                 <div>Permission</div>
                 <div>Access</div>
-                <div className="text-center">Action</div>
+                {isSuperadmin && <div className="text-center">Action</div>}
               </div>
               <div className="divide-y divide-[#D5DAE8] bg-[#F8FAFF]">
                 {usersLoading ? (
@@ -819,36 +836,38 @@ export default function AccountPage() {
                       >
                         {account.access}
                       </div>
-                      <div className="flex justify-center gap-3">
-                        {account.access === "Pending Verification" ? (
-                          <>
+                      {isSuperadmin && (
+                        <div className="flex justify-center gap-3">
+                          {account.access === "Pending Verification" ? (
+                            <>
+                              <DynamicButton
+                                label="Approve"
+                                variant="clear"
+                                size="small"
+                                className="px-0 py-0 text-[#16A34A]"
+                                onClick={() => openApproveModal(account)}
+                              />
+                              <DynamicButton
+                                label="Reject"
+                                variant="clear"
+                                size="small"
+                                className="px-0 py-0 text-[#DC2626]"
+                                onClick={() => openRejectConfirmation(account)}
+                              />
+                            </>
+                          ) : (
                             <DynamicButton
-                              label="Approve"
+                              label="Edit"
                               variant="clear"
                               size="small"
-                              className="px-0 py-0 text-[#16A34A]"
-                              onClick={() => openApproveModal(account)}
+                              iconPosition="right"
+                              icon={<PencilIcon size={16} stroke="#2563EB" />}
+                              className="px-0 py-0 text-[#2563EB]"
+                              onClick={() => openEditModal(account)}
                             />
-                            <DynamicButton
-                              label="Reject"
-                              variant="clear"
-                              size="small"
-                              className="px-0 py-0 text-[#DC2626]"
-                              onClick={() => openRejectConfirmation(account)}
-                            />
-                          </>
-                        ) : (
-                          <DynamicButton
-                            label="Edit"
-                            variant="clear"
-                            size="small"
-                            iconPosition="right"
-                            icon={<PencilIcon size={16} stroke="#2563EB" />}
-                            className="px-0 py-0 text-[#2563EB]"
-                            onClick={() => openEditModal(account)}
-                          />
-                        )}
-                      </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))
                 ) : (
@@ -864,14 +883,16 @@ export default function AccountPage() {
                         Try adjusting your filters or create a new account.
                       </p>
                     </div>
-                    <DynamicButton
-                      label="Add Account"
-                      variant="blue"
-                      size="small"
-                      iconPosition="left"
-                      icon={<PlusIcon size={16} stroke="#FFFFFF" />}
-                      onClick={openCreateModal}
-                    />
+                    {isSuperadmin && (
+                      <DynamicButton
+                        label="Add Account"
+                        variant="blue"
+                        size="small"
+                        iconPosition="left"
+                        icon={<PlusIcon size={16} stroke="#FFFFFF" />}
+                        onClick={openCreateModal}
+                      />
+                    )}
                   </div>
                 )}
               </div>
@@ -1198,5 +1219,15 @@ export default function AccountPage() {
         position="top-right"
       />
     </div>
+  );
+}
+
+// Viewers are kept out of this page entirely; Admins can view, and only
+// Superadmins get the write controls (see isSuperadmin above).
+export default function AccountPage() {
+  return (
+    <RoleGuard allowedRoleIds={[1, 2]}>
+      <AccountPageContent />
+    </RoleGuard>
   );
 }

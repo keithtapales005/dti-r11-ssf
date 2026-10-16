@@ -4,19 +4,21 @@ import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './types/user.type';
-import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { RegisterDto } from '../auth/dto/register.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class UsersService {
   private readonly table = 'users';
   private readonly PENDING_VERIFICATION_STATUS_ID = 4;
   private readonly DEFAULT_ROLE_ID = 3;
+  constructor(private readonly notificationsService: NotificationsService) { }
 
   async createUser(dto: CreateUserDto, performedBy: number) {
     const result = await this.checkUsername(dto.username);
     if (!result.available) {
-      throw new Error('Username already exists');
+      throw new ConflictException('Username already exists');
     }
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const { data, error } = await supabase.from(this.table).insert([
@@ -77,19 +79,31 @@ export class UsersService {
   }
 
   async editUser(dto: UpdateUserDto, user_id: number, performedBy: number) {
+    const { password, ...rest } = dto;
+
+    const updates: Record<string, unknown> = { ...rest };
+    if (password) {
+      updates.password_hash = await this.hashPassword(password);
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return this.getUser(user_id); // nothing to change
+    }
+
     const { data, error } = await supabase
       .from(this.table)
-      .update({
-        ...dto,
-        password_hash: dto.password
-          ? await this.hashPassword(dto.password)
-          : undefined,
-      })
+      .update(updates)
       .eq('user_id', user_id)
-      .select()
+      .select(
+        'user_id, username, first_name, last_name, role_id, department_id, user_status_id',
+      )
       .maybeSingle();
+
     if (error) {
       throw new Error(error.message);
+    }
+    if (!data) {
+      throw new NotFoundException('User not found');
     }
 
     await supabase.from('logs').insert({
@@ -165,7 +179,7 @@ export class UsersService {
     if (logError) {
       console.error('Failed to insert log:', logError);
     }
-
+    await this.notificationsService.notifySelfRegister(data.user_id, dto.username);
     return { message: 'Registration submitted. Your account is pending superadmin approval.' };
   }
 

@@ -7,6 +7,7 @@ import Dropdown, { DropdownOption } from "../../components/dropdown";
 import { useLogs } from "../../../lib/hooks/useLogs";
 import { useUsers } from "../../../lib/hooks/useUser";
 
+
 const PERMISSION_FILTER_OPTIONS: DropdownOption[] = [
     { id: "all", label: "All Permissions", value: "" },
     { id: "1", label: "Superadmin", value: "1" },

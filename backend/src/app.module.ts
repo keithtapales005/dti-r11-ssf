@@ -24,6 +24,7 @@ import { ProjectAccomplishmentModule } from './project_accomplishment/project_ac
 import { ReportsModule } from './reports/reports.module';
 import { LogsModule } from './logs/logs.module';
 import { DocumentTypeModule } from './document_type/document_type.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [

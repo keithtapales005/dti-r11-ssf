@@ -95,7 +95,7 @@ export default function ProjectAccomplishmentForm({ projectId }: ProjectAccompli
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="text-sm rounded-md border border-gray-300 px-3 py-2 outline-none"
+            className="text-sm rounded-md border border-gray-300 bg-white text-gray-900 px-3 py-2 outline-none [color-scheme:light]"
           >
             <option value="">-- Select --</option>
             {ACCOMPLISHMENT_CATEGORIES.map((c) => (

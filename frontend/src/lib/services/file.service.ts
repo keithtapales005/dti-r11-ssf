@@ -13,10 +13,18 @@ export const fileService = {
         return res.json();
     },
 
-    uploadFile: async (projectId: number, fileName: string, file: File): Promise<ProjectFile> => {
+    uploadFile: async (
+        projectId: number,
+        fileName: string,
+        file: File,
+        documentTypeId?: number,
+    ): Promise<ProjectFile> => {
         const formData = new FormData();
         formData.append("project_id", String(projectId));
         formData.append("file_name", fileName);
+        if (documentTypeId !== undefined) {
+            formData.append("document_type_id", String(documentTypeId));
+        }
         formData.append("file", file);
 
         const res = await fetch(`${API_URL}/files/upload`, {

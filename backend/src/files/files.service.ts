@@ -34,6 +34,7 @@ export class FilesService {
                     file_type: mimeType,
                     file_path: storagePath,
                     file_size: fileSize,
+                    document_type_id: dto.document_type_id,
                 },
             ])
             .select()

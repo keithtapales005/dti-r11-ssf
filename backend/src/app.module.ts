@@ -23,6 +23,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { ProjectAccomplishmentModule } from './project_accomplishment/project_accomplishment.module';
 import { ReportsModule } from './reports/reports.module';
 import { LogsModule } from './logs/logs.module';
+import { DocumentTypeModule } from './document_type/document_type.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { LogsModule } from './logs/logs.module';
     ProjectAccomplishmentModule,
     ReportsModule,
     LogsModule,
+    DocumentTypeModule,
   ],
   controllers: [AppController, ProvinceController],
   providers: [AppService, ProvinceService],

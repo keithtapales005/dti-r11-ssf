@@ -181,13 +181,20 @@ export default function ProjectPage() {
               />
             </div>
 
-            <DynamicButton
-              label="Add Project"
-              variant="blue"
-              icon={<PlusIcon size={16} stroke="#FEFEFE" strokeWidth={2} />}
-              iconPosition="left"
-              onClick={() => setIsAddModalOpen(true)}
-            />
+            <div className="flex gap-3">
+              <DynamicButton
+                label="Import Project"
+                variant="blue"
+                onClick={() => router.push("/import-project")}
+              />
+              <DynamicButton
+                label="Add Project"
+                variant="blue"
+                icon={<PlusIcon size={16} stroke="#FEFEFE" strokeWidth={2} />}
+                iconPosition="left"
+                onClick={() => setIsAddModalOpen(true)}
+              />
+            </div>
           </div>
 
           <div className="bg-white rounded-lg shadow-xs overflow-hidden">

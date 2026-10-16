@@ -31,6 +31,9 @@ export class ProjectManagementController {
     @Roles(Role.SUPERADMIN)
     @Audit('DELETE', 'project')
     @Delete(':id')
+    remove(@Param('id') id: number, @CurrentUser('user_id') userId: number) {
+        return this.projectManagementService.deleteProject(id, userId);
+    }
 
     @Get()
     getAllProjects(@Query('page') page = 1, @Query('limit') limit = 10) {

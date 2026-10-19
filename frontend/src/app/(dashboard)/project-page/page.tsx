@@ -27,7 +27,7 @@ export default function ProjectPage() {
   const provinceName = searchParams.get("province") || "Davao City";
 
   const { data: currentUser } = useCurrentUser();
-  const { canAdd } = usePermissions();
+  const { canAdd, isSuperadmin } = usePermissions();
   const { data: projectsResponse, isLoading: projectsLoading } = useProjects(1, 50);
   const { data: provinces } = useProvinces();
   const { data: statuses } = useProjectStatuses();
@@ -49,6 +49,9 @@ export default function ProjectPage() {
   const [projectTitle, setProjectTitle] = useState("");
   const [proposedBy, setProposedBy] = useState("");
   const [statusId, setStatusId] = useState<number | undefined>();
+  const effectiveProvinceId = isSuperadmin ? provinceId : currentUser?.province_id;
+  const lockedProvinceName =
+    (provinces ?? []).find((p: any) => p.province_id === currentUser?.province_id)?.province_name ?? "";
 
   const addToast = useCallback((toast: Omit<ToastProps, "id">) => {
     const id = `${Date.now()}-${Math.random()}`;
@@ -109,10 +112,10 @@ export default function ProjectPage() {
   };
 
   const handleSubmit = () => {
-    const selectedProvince = (provinces ?? []).find((p: any) => p.province_id === provinceId);
+    const selectedProvince = (provinces ?? []).find((p: any) => p.province_id === effectiveProvinceId);
     const ssfNumber = `${year}-${region}-${selectedProvince?.province_name ?? ""}-${number}`;
 
-    if (!year || !provinceId || !statusId || !number || !businessName || !projectTitle) {
+    if (!year || !effectiveProvinceId || !statusId || !number || !businessName || !projectTitle) {
       addToast({
         type: "warning",
         title: "Missing Fields",
@@ -124,7 +127,7 @@ export default function ProjectPage() {
 
     createProject.mutate(
       {
-        province_id: provinceId,
+        province_id: effectiveProvinceId,
         created_by: currentUser?.user_id,
         project_status_id: statusId,
         ssf_number: ssfNumber,
@@ -251,14 +254,25 @@ export default function ProjectPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <Dropdown
-                variant="secondary"
-                label="Province"
-                options={provinceOptions}
-                selectedValue={provinceId}
-                onSelect={(option) => setProvinceId(Number(option.value))}
-                placeholder="Province"
-              />
+              {isSuperadmin ? (
+                <Dropdown
+                  variant="secondary"
+                  label="Province"
+                  options={provinceOptions}
+                  selectedValue={provinceId}
+                  onSelect={(option) => setProvinceId(Number(option.value))}
+                  placeholder="Province"
+                />
+              ) : (
+                <InputField
+                  label="Province"
+                  name="province"
+                  placeholder="Province"
+                  value={lockedProvinceName}
+                  onChange={() => {}}
+                  disabled
+                />
+              )}
               <InputField
                 label="Number"
                 name="number"

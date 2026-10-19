@@ -119,7 +119,7 @@ export class UsersService {
     const { data, error } = await supabase
       .from(this.table)
       .select(
-        'user_id, username, first_name, last_name, role_id, department_id, user_status_id',
+        'user_id, username, first_name, last_name, role_id, department_id, province_id, user_status_id',
       )
       .eq('user_id', user_id)
       .maybeSingle();
@@ -160,6 +160,7 @@ export class UsersService {
         password_hash: passwordHash,
         role_id: this.DEFAULT_ROLE_ID,
         department_id: 10,
+        province_id: dto.province_id,
         user_status_id: this.PENDING_VERIFICATION_STATUS_ID,
       },
     ]).select().single();

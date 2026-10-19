@@ -1,23 +1,38 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import InputField from "@/app/components/input-field";
 import DynamicButton from "../../components/dynamic-buttons";
+import Dropdown, { DropdownOption } from "@/app/components/dropdown";
 import { ToastContainer, ToastProps } from "@/app/components/dynamic-toast";
 import { MailIcon, PhoneIcon, GlobeIcon } from "@/app/components/icons";
 import { useRegister } from "@/lib/hooks/useAuth";
+import { useProvinces } from "@/lib/queries/provinceQueries";
 
 export default function RegisterPage() {
     const router = useRouter();
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [username, setUsername] = useState("");
+    const [provinceId, setProvinceId] = useState<number | undefined>();
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [toasts, setToasts] = useState<ToastProps[]>([]);
+
+    const { data: provinces } = useProvinces();
+
+    const provinceOptions: DropdownOption[] = useMemo(
+        () =>
+            (provinces ?? []).map((p: any) => ({
+                id: p.province_id,
+                label: p.province_name,
+                value: p.province_id,
+            })),
+        [provinces]
+    );
 
     const addToast = useCallback((toast: Omit<ToastProps, "id">) => {
         const id = `${Date.now()}-${Math.random()}`;
@@ -51,7 +66,7 @@ export default function RegisterPage() {
     });
 
     const handleSubmit = async () => {
-        if (!firstName || !lastName || !username || !password || !confirmPassword) {
+        if (!firstName || !lastName || !username || !provinceId || !password || !confirmPassword) {
             addToast({
                 type: "warning",
                 title: "Missing Fields",
@@ -71,7 +86,13 @@ export default function RegisterPage() {
             return;
         }
 
-        registerMutation.mutate({ first_name: firstName, last_name: lastName, username, password });
+        registerMutation.mutate({
+            first_name: firstName,
+            last_name: lastName,
+            username,
+            password,
+            province_id: provinceId,
+        });
     };
 
     return (
@@ -98,7 +119,6 @@ export default function RegisterPage() {
                 <Image src="/hexagons.png" alt="Decorative hexagon" width={224} height={224} className="w-full h-full object-contain" />
             </div>
 
-            {/* Left Side Content - Z-20 */}
             {/* Left Side Content - Z-20 */}
             <div className="absolute left-0 bottom-0 w-1/2 h-80 pl-12 py-14 flex flex-col justify-end gap-2 z-16">
                 {/* DTI and SSF Logos */}
@@ -149,6 +169,7 @@ export default function RegisterPage() {
                     </div>
                 </div>
             </div>
+
             {/* Main Register Container */}
             <div className="fixed right-0 top-1/2 transform -translate-y-1/2 w-180 h-238 bg-white rounded-tl-[80px] rounded-bl-[80px] shadow-[0px_4px_16px_rgba(0,0,0,0.20)] overflow-hidden flex flex-col items-center justify-start pt-24 z-18 overflow-y-auto">
                 <div className="w-118.25 flex flex-col gap-8 pb-10">
@@ -203,6 +224,15 @@ export default function RegisterPage() {
                             value={username}
                             onChange={setUsername}
                             required
+                        />
+
+                        <Dropdown
+                            variant="secondary"
+                            label="Designation"
+                            options={provinceOptions}
+                            selectedValue={provinceId}
+                            onSelect={(option) => setProvinceId(Number(option.value))}
+                            placeholder="Select your province"
                         />
 
                         <InputField

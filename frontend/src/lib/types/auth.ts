@@ -8,4 +8,5 @@ export interface RegisterDto {
     last_name: string;
     username: string;
     password: string;
+    province_id: number;
 }

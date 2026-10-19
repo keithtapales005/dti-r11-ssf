@@ -1,5 +1,6 @@
 "use client";
 
+import { usePermissions } from "@/lib/hooks/usePermissions";
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import InputField from "@/app/components/input-field";
@@ -18,6 +19,7 @@ const selectClass =
 export default function ImportProjectPage() {
   const router = useRouter();
   const { data: currentUser } = useCurrentUser();
+  const { isSuperadmin } = usePermissions();
   const { data: provinces } = useProvinces();
   const { data: statuses } = useProjectStatuses();
   const { data: documentTypes } = useDocumentTypes();
@@ -27,6 +29,7 @@ export default function ImportProjectPage() {
   const [businessName, setBusinessName] = useState("");
   const [projectTitle, setProjectTitle] = useState("");
   const [provinceId, setProvinceId] = useState("");
+  const effectiveProvinceId = isSuperadmin ? provinceId : String(currentUser?.province_id ?? "");
   const [statusId, setStatusId] = useState("");
   const [yearLaunched, setYearLaunched] = useState("");
   const [dateEstablished, setDateEstablished] = useState("");
@@ -72,7 +75,7 @@ export default function ImportProjectPage() {
     ssfNumber.trim() !== "" &&
     businessName.trim() !== "" &&
     projectTitle.trim() !== "" &&
-    provinceId !== "" &&
+    effectiveProvinceId !== "" &&
     statusId !== "";
 
   const doImport = async () => {
@@ -85,7 +88,7 @@ export default function ImportProjectPage() {
     try {
       setProgress("Creating project...");
       const result = await createProject.mutateAsync({
-        province_id: Number(provinceId),
+        province_id: Number(effectiveProvinceId),
         created_by: currentUser.user_id,
         project_status_id: Number(statusId),
         ssf_number: ssfNumber.trim(),
@@ -171,7 +174,7 @@ export default function ImportProjectPage() {
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700">Province</label>
-              <select value={provinceId} onChange={(e) => setProvinceId(e.target.value)} className={selectClass}>
+              <select value={effectiveProvinceId} onChange={(e) => setProvinceId(e.target.value)} disabled={!isSuperadmin} className={selectClass}>
                 <option value="">-- Select --</option>
                 {(provinces ?? []).map((p: any) => (
                   <option key={p.province_id} value={p.province_id}>{p.province_name}</option>

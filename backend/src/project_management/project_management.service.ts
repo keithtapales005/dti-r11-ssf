@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, ForbiddenException } from '@nestjs/common';
+import { Role } from '../auth/enum/role.enum';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { supabase } from 'src/supabase/supabase.client';
@@ -8,10 +9,32 @@ export class ProjectManagementService {
 
   private readonly table = 'project';
 
-  async createProject(createProjectDto: CreateProjectDto, performedBy: number) {
+    async createProject(createProjectDto: CreateProjectDto, performedBy: number) {
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('province_id, role(role_name)')
+      .eq('user_id', performedBy)
+      .maybeSingle();
+
+    if (userError || !user) {
+      throw new ForbiddenException('Could not verify your account.');
+    }
+
+    let provinceId = createProjectDto.province_id;
+
+    // Everyone except the Super Admin is locked to their registered province
+    if ((user as any).role?.role_name !== Role.SUPERADMIN) {
+      if (!user.province_id) {
+        throw new ForbiddenException(
+          'Your account has no designated province. Contact the Super Administrator.',
+        );
+      }
+      provinceId = user.province_id;
+    }
+
     const { data, error } = await supabase.from(this.table).insert([
       {
-        province_id: createProjectDto.province_id,
+        province_id: provinceId,
         created_by: createProjectDto.created_by,
         project_status_id: createProjectDto.project_status_id,
         ssf_number: createProjectDto.ssf_number,

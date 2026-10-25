@@ -17,6 +17,7 @@ export default function RegisterPage() {
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
     const [provinceId, setProvinceId] = useState<number | undefined>();
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -65,9 +66,9 @@ export default function RegisterPage() {
         },
     });
 
-    const handleSubmit = async () => {
-        if (!firstName || !lastName || !username || !provinceId || !password || !confirmPassword) {
-            addToast({
+  const handleSubmit = async () => {
+    if (!firstName || !lastName || !username || !email || !provinceId || !password || !confirmPassword) {
+      addToast({
                 type: "warning",
                 title: "Missing Fields",
                 description: "All fields are required.",
@@ -92,6 +93,7 @@ export default function RegisterPage() {
             username,
             password,
             province_id: provinceId,
+            email: email.trim(),
         });
     };
 
@@ -110,13 +112,13 @@ export default function RegisterPage() {
 
             {/* Decorative Hexagon Elements - Z-10 */}
             <div className="absolute w-64 h-64 left--12.5 top-5 opacity-30 pointer-events-none z-10">
-                <Image src="/hexagons.png" alt="Decorative hexagon" width={256} height={256} className="w-full h-full object-contain" />
+                <Image src="/hexagons.png" alt="Decorative hexagon" width={256} height={256} loading="eager" className="w-full h-full object-contain" />
             </div>
             <div className="absolute w-72 h-72 left-50 top-37.5 opacity-25 pointer-events-none z-10">
-                <Image src="/hexagons.png" alt="Decorative hexagon" width={288} height={288} className="w-full h-full object-contain" />
+                <Image src="/hexagons.png" alt="Decorative hexagon" width={288} height={288} loading="eager" className="w-full h-full object-contain" />
             </div>
             <div className="absolute w-56 h-56 left-20 bottom-25 opacity-20 pointer-events-none z-10">
-                <Image src="/hexagons.png" alt="Decorative hexagon" width={224} height={224} className="w-full h-full object-contain" />
+                <Image src="/hexagons.png" alt="Decorative hexagon" width={224} height={224} loading="eager" className="w-full h-full object-contain" />
             </div>
 
             {/* Left Side Content - Z-20 */}
@@ -223,6 +225,16 @@ export default function RegisterPage() {
                             type="text"
                             value={username}
                             onChange={setUsername}
+                            required
+                        />
+
+                        <InputField
+                            label="Email"
+                            name="email"
+                            placeholder="Enter Email Address"
+                            type="text"
+                            value={email}
+                            onChange={setEmail}
                             required
                         />
 

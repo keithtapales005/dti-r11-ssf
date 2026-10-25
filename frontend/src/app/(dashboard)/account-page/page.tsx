@@ -24,7 +24,7 @@ import { isForbiddenError } from "../../../lib/utils/errors";
 
 const ROLE_MAP = {
   Admin: 2,
-  Viewer: 3,
+  Guest: 3,
 } as const;
 
 const DEPARTMENT_MAP = {
@@ -42,7 +42,7 @@ const DEPARTMENT_MAP = {
 // ------------------------------------------------------------------
 // Types
 // ------------------------------------------------------------------
-type Permission = "Viewer" | "Admin";
+type Permission = "Guest" | "Admin";
 type AccessStatus = "Active" | "Blocked" | "Deleted" | "Pending Verification" | "Unknown";
 
 type SaveConfirmation = {
@@ -78,7 +78,7 @@ const DEPARTMENT_OPTIONS = [
   "Davao de Oro Provincial Office",
 ];
 
-const PERMISSION_OPTIONS: Permission[] = ["Viewer", "Admin"];
+const PERMISSION_OPTIONS: Permission[] = ["Guest", "Admin"];
 
 function normalize(text: string) {
   return text.trim().toLowerCase();
@@ -136,7 +136,7 @@ function validateAccountForm(
 // ------------------------------------------------------------------
 const PERMISSION_FILTER_OPTIONS: DropdownOption[] = [
   { id: "all", label: "All Permissions", value: "" },
-  { id: "viewer", label: "Viewer", value: "Viewer" },
+  { id: "guest", label: "Guest", value: "Guest" },
   { id: "admin", label: "Admin", value: "Admin" },
 ];
 
@@ -189,7 +189,7 @@ function AccountPageContent() {
   const approveUserMutation = useApproveUser();
   const rejectUserMutation = useRejectUser();
 
-  const roleMap: Record<number, Permission> = { 2: "Admin", 3: "Viewer" };
+  const roleMap: Record<number, Permission> = { 2: "Admin", 3: "Guest" };
 
   const accounts: AccountRecord[] = useMemo(() => {
     return rawUsers
@@ -199,7 +199,7 @@ function AccountPageContent() {
         lastName: u.last_name ?? "",
         username: u.username ?? "",
         department: u.department?.department_name ?? "Unassigned",
-        permission: roleMap[u.role_id] ?? "Viewer",
+        permission: roleMap[u.role_id] ?? "Guest",
         isOnline: false,
         access: (u.user_status?.user_status_name as AccessStatus) ?? "Unknown",
       }))
@@ -242,6 +242,7 @@ function AccountPageContent() {
   // Reject confirmation state
   const [isRejectConfirmOpen, setIsRejectConfirmOpen] = useState(false);
   const [rejectingAccount, setRejectingAccount] = useState<AccountRecord | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
   // Modal form states (create/edit)
   const [modalFormData, setModalFormData] = useState<Record<string, string>>({
@@ -439,6 +440,7 @@ function AccountPageContent() {
   const closeRejectConfirmation = useCallback(() => {
     setIsRejectConfirmOpen(false);
     setRejectingAccount(null);
+    setRejectReason("");
   }, []);
 
   const handleModalFormChange = useCallback(
@@ -698,11 +700,24 @@ function AccountPageContent() {
     }
   }, [approvingAccount, approveFormData, approveUserMutation, addToast, closeApproveModal, resetPagination]);
 
-  const handleRejectConfirm = useCallback(async () => {
+    const handleRejectConfirm = useCallback(async () => {
     if (!rejectingAccount) return;
 
+    const reason = rejectReason.trim();
+    if (!reason) {
+      addToast({
+        type: "warning",
+        title: "Reason required",
+        description: "Please enter a reason for the rejection.",
+      });
+      return;
+    }
+
     try {
-      await rejectUserMutation.mutateAsync(Number(rejectingAccount.id));
+      await rejectUserMutation.mutateAsync({
+        id: Number(rejectingAccount.id),
+        reason,
+      });
       addToast({
         type: "success",
         title: "Account rejected",
@@ -717,7 +732,7 @@ function AccountPageContent() {
         addToast({ type: "error", title: "Rejection failed", description: errorMessage });
       }
     }
-  }, [rejectingAccount, rejectUserMutation, addToast, closeRejectConfirmation, resetPagination]);
+  }, [rejectingAccount, rejectReason, rejectUserMutation, addToast, closeRejectConfirmation, resetPagination]);
 
   return (
     <div className="min-h-screen bg-[#EAF0FF] text-[#182286] pt-20">
@@ -1211,7 +1226,23 @@ function AccountPageContent() {
         onConfirm={handleRejectConfirm}
         loading={rejectUserMutation.isPending}
         disabled={rejectUserMutation.isPending}
-      />
+      >
+        <div className="w-full">
+          <label className="block mb-1.5 text-sm font-semibold text-[#002075]">
+            Reason for rejection
+          </label>
+          <textarea
+            className="w-full px-3 py-2 text-sm rounded-[5px] border border-[#E5E7EB] bg-[#F9FAFB] text-[#182286] min-h-[100px] focus:outline-none focus:border-[#182286]"
+            placeholder="Explain why this registration is being rejected..."
+            maxLength={500}
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+          />
+          <p className="mt-1 text-xs text-gray-500 text-right">
+            {rejectReason.length}/500
+          </p>
+        </div>
+      </ConfirmationModal>
 
       <ToastContainer
         toasts={toasts}
@@ -1222,11 +1253,11 @@ function AccountPageContent() {
   );
 }
 
-// Viewers are kept out of this page entirely; Admins can view, and only
+// Guests are kept out of this page entirely; Admins can view, and only
 // Superadmins get the write controls (see isSuperadmin above).
 export default function AccountPage() {
   return (
-    <RoleGuard allowedRoleIds={[1, 2]}>
+    <RoleGuard allowedRoleIds={[1]}>
       <AccountPageContent />
     </RoleGuard>
   );

@@ -8,6 +8,7 @@ import {
   Param,
   UseGuards,
 } from '@nestjs/common';
+import { RejectUserDto } from './dto/reject-user.dto';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -62,9 +63,10 @@ export class UsersController {
   @Patch(':id/reject')
   async rejectUser(
     @Param('id') id: number,
+    @Body() dto: RejectUserDto,
     @CurrentUser('user_id') userId: number,
   ) {
-    return this.usersService.rejectUser(id, userId);
+    return this.usersService.rejectUser(id, dto, userId);
   }
 
   @Roles(Role.SUPERADMIN)

@@ -75,7 +75,8 @@ export const useApproveUser = () => {
 export const useRejectUser = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (id: number) => userService.rejectUser(id),
+    mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+      userService.rejectUser(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       queryClient.invalidateQueries({ queryKey: ["users", "pending"] });

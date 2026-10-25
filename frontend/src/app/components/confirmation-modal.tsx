@@ -17,6 +17,7 @@ export interface ConfirmationModalProps {
   onConfirm: () => void;
   loading?: boolean;
   disabled?: boolean;
+  children?: React.ReactNode;
 }
 
 // ============================================================================
@@ -54,6 +55,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   onConfirm,
   loading = false,
   disabled = false,
+  children,
 }) => {
   if (!isOpen) {
     return null;
@@ -165,6 +167,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
           {/* Message */}
           <p style={messageStyle}>{message}</p>
+          {children}
         </div>
 
         {/* Button Container */}

@@ -1,3 +1,4 @@
+import { MailService } from '../mail/mail.service';
 import { Injectable } from '@nestjs/common';
 import { supabase } from '../supabase/supabase.client';
 import * as bcrypt from 'bcrypt';
@@ -13,7 +14,10 @@ export class UsersService {
   private readonly table = 'users';
   private readonly PENDING_VERIFICATION_STATUS_ID = 4;
   private readonly DEFAULT_ROLE_ID = 3;
-  constructor(private readonly notificationsService: NotificationsService) { }
+  constructor(
+    private readonly notificationsService: NotificationsService,
+    private readonly mailService: MailService,
+  ) { }
 
   async createUser(dto: CreateUserDto, performedBy: number) {
     const result = await this.checkUsername(dto.username);
@@ -145,6 +149,14 @@ export class UsersService {
   }
 
   async registerUser(dto: RegisterDto) {
+    const { data: existingEmail } = await supabase
+      .from(this.table)
+      .select('user_id')
+      .eq('email', dto.email.trim().toLowerCase())
+      .maybeSingle();
+    if (existingEmail) {
+      throw new ConflictException('Email is already registered');
+    }
     const result = await this.checkUsername(dto.username);
     if (!result.available) {
       throw new ConflictException('Username already exists');
@@ -161,6 +173,7 @@ export class UsersService {
         role_id: this.DEFAULT_ROLE_ID,
         department_id: 10,
         province_id: dto.province_id,
+        email: dto.email.trim().toLowerCase(),
         user_status_id: this.PENDING_VERIFICATION_STATUS_ID,
       },
     ]).select().single();
@@ -231,10 +244,25 @@ export class UsersService {
       action: 'APPROVE',
     });
 
-    return { message: 'User approved successfully', user: data };
+    let emailSent = false;
+    if (data.email) {
+      emailSent = await this.mailService.sendAccountApproved(
+        data.email,
+        data.first_name,
+        data.username,
+      );
+    }
+
+    return { message: 'User approved successfully', user: data, emailSent };
   }
 
-  async rejectUser(userId: number, performedBy: number) {
+  async rejectUser(
+    userId: number,
+    dto: { reason: string },
+    performedBy: number,
+  ) {
+    const reason = dto.reason.trim();
+
     const { data, error } = await supabase
       .from(this.table)
       .update({ user_status_id: 2 }) // Blocked
@@ -253,7 +281,16 @@ export class UsersService {
       action: 'REJECT',
     });
 
-    return { message: 'User rejected', user: data };
+    let emailSent = false;
+    if (data.email) {
+      emailSent = await this.mailService.sendAccountRejected(
+        data.email,
+        data.first_name,
+        reason,
+      );
+    }
+
+    return { message: 'User rejected', user: data, emailSent };
   }
 
   async deleteUser(userId: number, performedBy: number) {

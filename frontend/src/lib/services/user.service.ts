@@ -63,10 +63,12 @@ export const userService = {
         return res.json();
     },
 
-    rejectUser: async (id: number) => {
+    rejectUser: async (id: number, reason: string) => {
         const res = await fetch(`${API_URL}/users/${id}/reject`, {
             method: "PATCH",
             credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reason }),
         });
         if (!res.ok) throw new Error(await res.text());
         return res.json();

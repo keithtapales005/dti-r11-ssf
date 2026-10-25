@@ -1,3 +1,4 @@
+import { MailModule } from './mail/mail.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
@@ -31,6 +32,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    MailModule,
     UsersModule,
     AuthModule,
     DepartmentModule,

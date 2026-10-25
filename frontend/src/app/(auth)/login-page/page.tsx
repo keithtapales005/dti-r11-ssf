@@ -86,6 +86,7 @@ export default function LoginPage() {
           alt="Decorative hexagon"
           width={256}
           height={256}
+          loading="eager"
           className="w-full h-full object-contain"
         />
       </div>

@@ -70,7 +70,7 @@ const PRIMARY_ITEMS: SidebarItem[] = [
 ];
 
 const MANAGEMENT_ITEMS: SidebarItem[] = [
-  { label: "Accounts", href: "/account-page", icon: FiUsers, roles: [1, 2] },
+  { label: "Accounts", href: "/account-page", icon: FiUsers, roles: [1] },
 ];
 
 const MONITORING_ITEMS: SidebarItem[] = [

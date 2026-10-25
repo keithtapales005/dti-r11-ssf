@@ -1,5 +1,5 @@
 import { OmitType } from '@nestjs/mapped-types';
-import { IsInt } from 'class-validator';
+import { IsEmail, IsInt, MaxLength } from 'class-validator';
 import { CreateUserDto } from '../../users/dto/create-user.dto';
 
 export class RegisterDto extends OmitType(CreateUserDto, [
@@ -9,4 +9,8 @@ export class RegisterDto extends OmitType(CreateUserDto, [
 ] as const) {
   @IsInt()
   province_id!: number;
+
+  @IsEmail({}, { message: 'Please enter a valid email address' })
+  @MaxLength(254)
+  email!: string;
 }

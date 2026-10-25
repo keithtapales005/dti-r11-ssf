@@ -2,7 +2,7 @@ import { IsInt, IsIn } from 'class-validator';
 
 export class ApproveUserDto {
     @IsInt()
-    @IsIn([2, 3], { message: 'role_id must be Admin (2) or Viewer (3)' })
+    @IsIn([2, 3], { message: 'role_id must be Admin (2) or Guest (3)' })
     role_id: number;
 
     @IsInt()

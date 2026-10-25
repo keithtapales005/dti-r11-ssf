@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { supabase } from '../supabase/supabase.client';
+import { encodeRow, decodeRows } from '../lookups/lookups';
 
 type NotificationType = 'SELF_REGISTER' | 'FILE_UPLOAD';
 
@@ -14,13 +15,14 @@ export class NotificationsService {
         referenceTable?: string;
         referenceId?: number;
     }) {
-        const { error } = await supabase.from(this.table).insert({
+        const row = await encodeRow(this.table, {
             type: params.type,
             message: params.message,
             actor_user_id: params.actorUserId,
             reference_table: params.referenceTable,
             reference_id: params.referenceId,
         });
+        const { error } = await supabase.from(this.table).insert(row);
         if (error) {
             console.error('Failed to create notification:', error);
         }
@@ -85,6 +87,8 @@ export class NotificationsService {
         const { data, error, count } = await query.range(from, to);
         if (error) throw new Error(error.message);
 
+        await decodeRows(this.table, data);
+
         return {
             data,
             page,
@@ -112,7 +116,7 @@ export class NotificationsService {
             .maybeSingle();
         if (error) throw new Error(error.message);
         if (!data) throw new NotFoundException('Notification not found');
-        return data;
+        return decodeRows(this.table, data);
     }
 
     async markAllAsRead() {

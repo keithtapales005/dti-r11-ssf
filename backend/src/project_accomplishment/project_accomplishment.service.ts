@@ -4,6 +4,7 @@ import { UpdateProjectAccomplishmentDto } from './dto/update_project_accomplishm
 import { supabase } from 'src/supabase/supabase.client';
 import * as XLSX from 'xlsx';
 import { ImportAccomplishmentResultDto, ImportRowResult } from './dto/import_accomplishment_result.dto';
+import { insertLog, encodeRow, decodeRows } from '../lookups/lookups';
 
 // 0-based column indices (Excel column - 1), matching both
 // R11_CONSOLIDATED (region file) and 13A_Approved SSFs (province files)
@@ -100,42 +101,44 @@ export class ProjectAccomplishmentService {
             .eq('project_id', dto.project_id)
             .maybeSingle();
 
+        const payload = await encodeRow(this.table, dto);
+
         if (existing) {
             const { data, error } = await supabase
                 .from(this.table)
-                .update({ ...dto, updated_at: new Date().toISOString() })
+                .update({ ...payload, updated_at: new Date().toISOString() })
                 .eq('project_id', dto.project_id)
                 .select()
                 .single();
 
             if (error) throw new Error(error.message);
 
-            await supabase.from('logs').insert({
+            await insertLog({
                 user_id: performedBy,
                 table_name: this.table,
                 affected_id: data.accomplishment_id,
                 action: 'UPDATE',
             });
 
-            return data;
+            return decodeRows(this.table, data);
         }
 
         const { data, error } = await supabase
             .from(this.table)
-            .insert([dto])
+            .insert([payload])
             .select()
             .single();
 
         if (error) throw new Error(error.message);
 
-        await supabase.from('logs').insert({
+        await insertLog({
             user_id: performedBy,
             table_name: this.table,
             affected_id: data.accomplishment_id,
             action: 'CREATE',
         });
 
-        return data;
+        return decodeRows(this.table, data);
     }
 
     async getByProject(projectId: number) {
@@ -146,7 +149,7 @@ export class ProjectAccomplishmentService {
             .maybeSingle();
 
         if (error) throw new Error(error.message);
-        return data;
+        return decodeRows(this.table, data);
     }
 
     private async parseAndImportRows(rows: any[][], performedBy: number): Promise<ImportAccomplishmentResultDto> {

@@ -1,9 +1,9 @@
 export interface ChecklistItem {
-  checklist_id: string;
+  checklist_id: number;
   project_id: number;
+  document_type_id: number;
   document_name: string;
-  status: "Pending" | "Uploaded" | "Verified";
-  file_id?: number | null;
+  status: string;
   verified_by?: number | null;
   created_at: string;
   updated_at: string;
@@ -19,10 +19,10 @@ export interface ChecklistResponse {
 export interface CreateChecklistItemDto {
   project_id: number;
   document_name: string;
-  status?: "Pending" | "Uploaded" | "Verified";
+  status?: string;
 }
 
 export interface UpdateChecklistItemDto {
   document_name?: string;
-  status?: "Pending" | "Uploaded" | "Verified";
+  status?: string;
 }

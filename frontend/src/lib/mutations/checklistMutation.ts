@@ -18,7 +18,7 @@ export const useUpdateChecklistItem = (projectId: number) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, dto }: { id: string; dto: UpdateChecklistItemDto }) =>
+    mutationFn: ({ id, dto }: { id: number; dto: UpdateChecklistItemDto }) =>
       checklistService.updateChecklistItem(id, dto),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: checklistKeys.byProject(projectId) });
@@ -30,7 +30,7 @@ export const useDeleteChecklistItem = (projectId: number) => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (id: string) => checklistService.deleteChecklistItem(id),
+    mutationFn: (id: number) => checklistService.deleteChecklistItem(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: checklistKeys.byProject(projectId) });
     },

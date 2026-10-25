@@ -3,18 +3,9 @@
 import { useState, useEffect } from "react";
 import InputField from "@/app/components/input-field";
 import { useAccomplishmentByProject } from "@/lib/queries/accomplishmentQueries";
+import { useLookupValues } from "@/lib/queries/lookupQueries";
+import { statusOptionNames } from "@/lib/utils/lookup";
 import { useUpsertAccomplishment } from "@/lib/mutations/accomplishmentMutation";
-
-const ACCOMPLISHMENT_CATEGORIES = [
-  "Maintained",
-  "Transferred to Successful Cooperator",
-  "Transferred to a New Cooperator",
-  "Extension of UA for 2 years",
-  "Disposed",
-  "Fully Transferred with Terminal Report",
-];
-
-const OPERATIONAL_STATUSES = ["Fully Operational", "Partially Operational", "Non-Operational"];
 
 interface ProjectAccomplishmentFormProps {
   projectId: number;
@@ -23,6 +14,9 @@ interface ProjectAccomplishmentFormProps {
 export default function ProjectAccomplishmentForm({ projectId }: ProjectAccomplishmentFormProps) {
   const { data: accomplishment, isLoading } = useAccomplishmentByProject(projectId);
   const upsertAccomplishment = useUpsertAccomplishment();
+  const { data: categoryValues = [] } = useLookupValues("accomplishment_category");
+  const { data: statusValues = [] } = useLookupValues("operational_status");
+  const { data: fundSources = [] } = useLookupValues("fund_source");
 
   const [fundSource, setFundSource] = useState("");
   const [category, setCategory] = useState("");
@@ -61,7 +55,19 @@ export default function ProjectAccomplishmentForm({ projectId }: ProjectAccompli
 
   const toNumOrUndefined = (v: string): number | undefined => (v === "" ? undefined : Number(v));
 
+  const [saveMessage, setSaveMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const messageOf = (error: any): string => {
+    try {
+      const m = JSON.parse(error?.message)?.message;
+      return Array.isArray(m) ? m.join(", ") : m ?? error.message;
+    } catch {
+      return error?.message ?? "Something went wrong";
+    }
+  };
+
   const handleSave = () => {
+    setSaveMessage(null);
     upsertAccomplishment.mutate({
       project_id: projectId,
       fund_source: fundSource || undefined,
@@ -78,6 +84,9 @@ export default function ProjectAccomplishmentForm({ projectId }: ProjectAccompli
       income_generated: toNumOrUndefined(incomeGenerated),
       accumulated_depreciation: toNumOrUndefined(accumulatedDepreciation),
       book_value_of_equipment: toNumOrUndefined(bookValue),
+    }, {
+      onSuccess: () => setSaveMessage({ ok: true, text: "Accomplishment data saved." }),
+      onError: (error: any) => setSaveMessage({ ok: false, text: messageOf(error) }),
     });
   };
 
@@ -88,7 +97,12 @@ export default function ProjectAccomplishmentForm({ projectId }: ProjectAccompli
   return (
     <div className="bg-white rounded-lg p-6 space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <InputField label="Fund Source" name="fundSource" placeholder="e.g. 2020 GAA" value={fundSource} onChange={setFundSource} />
+        <div className="flex flex-col">
+          <InputField label="Fund Source" name="fundSource" placeholder="e.g. 2020 GAA" value={fundSource} onChange={setFundSource} />
+          <p className="mt-1 text-xs text-gray-500">
+            {fundSources.length > 0 ? `Saved sources: ${fundSources.map((f) => f.name).join(", ")}` : ""}
+          </p>
+        </div>
 
         <div className="flex flex-col gap-1">
           <label className="text-sm font-medium text-gray-700">Accomplishment Category</label>
@@ -98,7 +112,7 @@ export default function ProjectAccomplishmentForm({ projectId }: ProjectAccompli
             className="text-sm rounded-md border border-gray-300 bg-white text-gray-900 px-3 py-2 outline-none [color-scheme:light]"
           >
             <option value="">-- Select --</option>
-            {ACCOMPLISHMENT_CATEGORIES.map((c) => (
+            {statusOptionNames(categoryValues, category).map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
@@ -111,10 +125,10 @@ export default function ProjectAccomplishmentForm({ projectId }: ProjectAccompli
           <select
             value={operationalStatus}
             onChange={(e) => setOperationalStatus(e.target.value)}
-            className="text-sm rounded-md border border-gray-300 px-3 py-2 outline-none"
+            className="text-sm rounded-md border border-gray-300 bg-white text-gray-900 px-3 py-2 outline-none [color-scheme:light]"
           >
             <option value="">-- Select --</option>
-            {OPERATIONAL_STATUSES.map((s) => (
+            {statusOptionNames(statusValues, operationalStatus).map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
@@ -155,6 +169,9 @@ export default function ProjectAccomplishmentForm({ projectId }: ProjectAccompli
       >
         {upsertAccomplishment.isPending ? "Saving..." : "Save Accomplishment Data"}
       </button>
+      {saveMessage && (
+        <p className={`text-sm font-medium ${saveMessage.ok ? "text-green-700" : "text-red-600"}`}>{saveMessage.text}</p>
+      )}
     </div>
   );
 }

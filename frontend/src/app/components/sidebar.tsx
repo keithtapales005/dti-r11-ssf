@@ -15,6 +15,7 @@ import {
   FiUser,
   FiUsers,
   FiBarChart2,
+  FiSliders,
 } from "react-icons/fi";
 import { usePathname, useRouter } from "next/navigation";
 import { useCurrentUser } from "@/lib/hooks/useAuth";
@@ -71,6 +72,8 @@ const PRIMARY_ITEMS: SidebarItem[] = [
 
 const MANAGEMENT_ITEMS: SidebarItem[] = [
   { label: "Accounts", href: "/account-page", icon: FiUsers, roles: [1] },
+  { label: "Accounts", href: "/account-page", icon: FiUsers, roles: [1, 2] },
+  { label: "Manage Lists", href: "/manage-lists", icon: FiSliders, roles: [1] },
 ];
 
 const MONITORING_ITEMS: SidebarItem[] = [

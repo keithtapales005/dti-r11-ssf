@@ -2,6 +2,7 @@ import { Injectable, ForbiddenException } from '@nestjs/common';
 import { Role } from '../auth/enum/role.enum';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
+import { ensureChecklist } from '../project_document_checklist/checklist-sync';
 import { supabase } from 'src/supabase/supabase.client';
 
 @Injectable()
@@ -50,6 +51,12 @@ export class ProjectManagementService {
       .single();
     if (error) {
       throw new Error(error.message);
+    }
+
+    try {
+      await ensureChecklist(data.project_id);
+    } catch (err) {
+      console.error('ensureChecklist failed:', (err as Error).message); // it is also created when the checklist is first opened
     }
 
     return { message: 'Project created successfully', data };

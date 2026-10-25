@@ -8,6 +8,7 @@ import { User } from './types/user.type';
 import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { RegisterDto } from '../auth/dto/register.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { insertLog } from '../lookups/lookups';
 
 @Injectable()
 export class UsersService {
@@ -42,7 +43,7 @@ export class UsersService {
       throw new Error(error.message);
     }
 
-    await supabase.from('logs').insert({
+    await insertLog({
       user_id: performedBy,
       table_name: this.table,
       affected_id: data.user_id,
@@ -110,7 +111,7 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    await supabase.from('logs').insert({
+    await insertLog({
       user_id: performedBy,
       table_name: this.table,
       affected_id: data.user_id,
@@ -183,7 +184,7 @@ export class UsersService {
     }
 
 
-    const { error: logError } = await supabase.from('logs').insert({
+    const { error: logError } = await insertLog({
       user_id: data.user_id,
       table_name: this.table,
       affected_id: data.user_id,
@@ -237,7 +238,7 @@ export class UsersService {
       throw new Error(error.message);
     }
 
-    await supabase.from('logs').insert({
+    await insertLog({
       user_id: performedBy,
       table_name: this.table,
       affected_id: userId,
@@ -274,7 +275,7 @@ export class UsersService {
       throw new Error(error.message);
     }
 
-    await supabase.from('logs').insert({
+    await insertLog({
       user_id: performedBy,
       table_name: this.table,
       affected_id: userId,
@@ -315,7 +316,7 @@ export class UsersService {
       throw new Error(error.message);
     }
 
-    await supabase.from('logs').insert({
+    await insertLog({
       user_id: performedBy,
       table_name: this.table,
       affected_id: userId,

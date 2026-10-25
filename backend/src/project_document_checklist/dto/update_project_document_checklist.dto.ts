@@ -1,4 +1,8 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateProjectDocumentChecklistDto } from './create_project_document_checklist.dto';
+import { IsNotEmpty, IsString } from 'class-validator';
 
-export class UpdateProjectDocumentChecklistDto extends PartialType(CreateProjectDocumentChecklistDto) {}
+// The only thing that can be changed by hand: verifying a document (or taking the verification back).
+export class UpdateProjectDocumentChecklistDto {
+    @IsString()
+    @IsNotEmpty()
+    status!: string;
+}

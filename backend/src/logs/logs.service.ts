@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { supabase } from '../supabase/supabase.client';
+import { decodeRows } from '../lookups/lookups';
 
 type LogAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'SELF_REGISTER' | 'APPROVE' | 'REJECT';
 
@@ -59,8 +60,8 @@ export class LogsService {
                 `
         id,
         created_at,
-        action,
-        table_name,
+        action_id,
+        table_id,
         affected_id,
         user_id,
         users:user_id ( user_id, first_name, last_name, role_id, role:role_id ( role_id, role_name ) )
@@ -84,6 +85,8 @@ export class LogsService {
         if (error) {
             throw new Error(error.message);
         }
+
+        await decodeRows('logs', data);
 
         let rows = (data ?? []).map((log: any) => ({
             id: log.id,

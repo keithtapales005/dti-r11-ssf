@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLookupValues } from "@/lib/queries/lookupQueries";
+import { statusOptionNames } from "@/lib/utils/lookup";
 import { useSearchParams, useRouter } from "next/navigation";
 import SearchBar from "../../components/search-bar";
 import { DynamicButton } from "../../components/dynamic-buttons";
@@ -444,11 +446,8 @@ export default function FilePage() {
   const [concernCategory, setConcernCategory] = useState<string>("");
   const [concernDescription, setConcernDescription] = useState("");
 
-  const concernCategoryOptions: DropdownOption[] = [
-    { id: "Challenge", label: "Challenge", value: "Challenge" },
-    { id: "Operational Concern", label: "Operational Concern", value: "Operational Concern" },
-    { id: "Grievance", label: "Grievance", value: "Grievance" },
-  ];
+  const { data: concernCategoryValues = [] } = useLookupValues("concern_category");
+  const concernCategoryOptions: DropdownOption[] = concernCategoryValues.map((v) => ({ id: v.name, label: v.name, value: v.name }));
 
   const handleSubmitConcern = () => {
     if (!concernCategory || !concernDescription.trim()) {
@@ -494,6 +493,7 @@ export default function FilePage() {
   const { data: checklistData, isLoading: checklistLoading } = useChecklistByProject(projectId);
   const createChecklistItem = useCreateChecklistItem();
   const updateChecklistItem = useUpdateChecklistItem(projectId);
+  const { data: checklistStatuses = [] } = useLookupValues("checklist_status");
   const deleteChecklistItem = useDeleteChecklistItem(projectId);
   const [newDocumentName, setNewDocumentName] = useState("");
   const [isChecklistExpanded, setIsChecklistExpanded] = useState(false);
@@ -533,7 +533,7 @@ export default function FilePage() {
     );
   };
 
-  const handleChecklistStatusChange = (id: string, status: "Pending" | "Uploaded" | "Verified") => {
+  const handleChecklistStatusChange = (id: number, status: string) => {
     updateChecklistItem.mutate(
       { id, dto: { status } },
       {
@@ -549,7 +549,7 @@ export default function FilePage() {
     );
   };
 
-  const handleDeleteChecklistItem = (id: string) => {
+  const handleDeleteChecklistItem = (id: number) => {
     deleteChecklistItem.mutate(id, {
       onError: (error: any) => {
         addToast({
@@ -1014,14 +1014,14 @@ export default function FilePage() {
                               onChange={(e) =>
                                 handleChecklistStatusChange(
                                   item.checklist_id,
-                                  e.target.value as "Pending" | "Uploaded" | "Verified",
+                                  e.target.value,
                                 )
                               }
                               className="text-xs font-semibold rounded-md border border-gray-200 px-2 py-1 outline-none text-black"
                             >
-                              <option value="Pending">Pending</option>
-                              <option value="Uploaded">Uploaded</option>
-                              <option value="Verified">Verified</option>
+                              {statusOptionNames(checklistStatuses, item.status).map((n) => (
+<option key={n} value={n}>{n}</option>
+))}
                             </select>
                           ) : (
                             <span className="text-xs font-semibold px-2 py-1 rounded-md bg-gray-100 text-black">

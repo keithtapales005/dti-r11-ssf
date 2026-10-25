@@ -1,5 +1,5 @@
 export interface ProjectAccomplishment {
-  accomplishment_id: string;
+  accomplishment_id: number;
   project_id: number;
   fund_source?: string | null;
   accomplishment_category?: string | null;

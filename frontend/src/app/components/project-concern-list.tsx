@@ -7,10 +7,11 @@ import InputForms from "@/app/components/input-forms";
 import Dropdown, { DropdownOption } from "@/app/components/dropdown";
 import { ToastContainer, type ToastProps } from "@/app/components/dynamic-toast";
 import { useCreateConcern, useEditConcern, useDeleteConcern } from "@/lib/mutations/concernMutation";
+import { useLookupValues } from "@/lib/queries/lookupQueries";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import { isForbiddenError } from "@/lib/utils/errors";
 
-type ConcernCategory = "Challenge" | "Operational Concern" | "Grievance";
+type ConcernCategory = string;
 
 interface Concern {
   project_concern_id: number;
@@ -25,13 +26,7 @@ interface ProjectConcernListProps {
   concerns: Concern[];
 }
 
-const CATEGORY_OPTIONS: DropdownOption[] = [
-  { id: "Challenge", label: "Challenge", value: "Challenge" },
-  { id: "Operational Concern", label: "Operational Concern", value: "Operational Concern" },
-  { id: "Grievance", label: "Grievance", value: "Grievance" },
-];
-
-const CATEGORY_STYLES: Record<ConcernCategory, string> = {
+const CATEGORY_STYLES: Record<string, string> = {
   "Challenge": "bg-amber-50 text-amber-700 border-amber-200",
   "Operational Concern": "bg-blue-50 text-blue-700 border-blue-200",
   "Grievance": "bg-red-50 text-red-700 border-red-200",
@@ -46,6 +41,8 @@ export default function ProjectConcernList({ projectId, concerns }: ProjectConce
   const [filterCategory, setFilterCategory] = useState<string | number>("all");
   const [toasts, setToasts] = useState<ToastProps[]>([]);
 
+  const { data: categoryValues = [] } = useLookupValues("concern_category");
+  const CATEGORY_OPTIONS: DropdownOption[] = categoryValues.map((v) => ({ id: v.name, label: v.name, value: v.name }));
   const createConcern = useCreateConcern();
   const editConcern = useEditConcern();
   const deleteConcern = useDeleteConcern();
@@ -166,7 +163,7 @@ export default function ProjectConcernList({ projectId, concerns }: ProjectConce
             {filteredConcerns.map((concern) => (
               <div key={concern.project_concern_id} className="border border-gray-100 rounded-lg p-4 flex justify-between items-start">
                 <div className="flex-1">
-                  <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full border ${CATEGORY_STYLES[concern.category]}`}>
+                  <span className={`inline-block text-xs font-semibold px-2.5 py-1 rounded-full border ${CATEGORY_STYLES[concern.category] ?? "bg-gray-50 text-gray-700 border-gray-200"}`}>
                     {concern.category}
                   </span>
                   <p className="text-sm text-gray-800 mt-2">{concern.description}</p>

@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { supabase } from 'src/supabase/supabase.client';
+import { decodeRows } from '../lookups/lookups';
 
 const CATEGORY_TO_SECTION: Record<string, string> = {
   'Maintained': 'A',
@@ -21,6 +22,7 @@ export interface ProvinceRow {
   fullyOperational: number;
   partiallyOperational: number;
   nonOperational: number;
+  otherOperational: number; // custom operational statuses added later
   percentOperational: number;
   msmesMale: number;
   msmesFemale: number;
@@ -52,6 +54,11 @@ export class ReportsService {
 
         if (error) throw new Error(error.message);
 
+        // accomplishment rows store codes; turn them back into text before comparing
+        for (const p of projects ?? []) {
+            await decodeRows('project_accomplishment', (p as any).project_accomplishment);
+        }
+
         // "Complete" means it has everything needed to correctly place and sum this project
         const complete = (projects ?? []).filter((p: any) => {
             const acc = Array.isArray(p.project_accomplishment) ? p.project_accomplishment[0] : p.project_accomplishment;
@@ -70,6 +77,10 @@ export class ReportsService {
         }));
 
         const excludedCount = (projects?.length ?? 0) - complete.length;
+        // projects whose (custom) category has no A-F section in the report form
+        const customCategoryCount = complete.filter(
+            (r) => !(r.acc.accomplishment_category in CATEGORY_TO_SECTION),
+        ).length;
 
         // Build one grouped table (province -> aggregated row) for a given list of matching projects
         const buildTable = (rows: typeof complete): ProvinceRow[] => {
@@ -81,7 +92,7 @@ export class ReportsService {
                     byProvince.set(key, {
                         province: key,
                         perFundSource: 0, perActualCount: 0, totalAmountDisbursed: 0,
-                        fullyOperational: 0, partiallyOperational: 0, nonOperational: 0, percentOperational: 0,
+                        fullyOperational: 0, partiallyOperational: 0, nonOperational: 0, otherOperational: 0, percentOperational: 0,
                         msmesMale: 0, msmesFemale: 0, otherUsersMale: 0, otherUsersFemale: 0,
                         employmentMale: 0, employmentFemale: 0, salesGenerated: 0, incomeGenerated: 0,
                         projectCost: 0, accumulatedDepreciation: 0, bookValueOfEquipment: 0,
@@ -100,6 +111,7 @@ export class ReportsService {
                 if (acc.operational_status === 'Fully Operational') bucket.fullyOperational += 1;
                 else if (acc.operational_status === 'Partially Operational') bucket.partiallyOperational += 1;
                 else if (acc.operational_status === 'Non-Operational') bucket.nonOperational += 1;
+                else bucket.otherOperational += 1; // a custom status added from Manage Lists
 
                 bucket.msmesMale += Number(acc.msmes_assisted_male ?? 0);
                 bucket.msmesFemale += Number(acc.msmes_assisted_female ?? 0);
@@ -142,6 +154,7 @@ export class ReportsService {
                 totalProjects: projects?.length ?? 0,
                 includedProjects: complete.length,
                 excludedIncomplete: excludedCount,
+                customCategoryProjects: customCategoryCount,
             },
         };
     }

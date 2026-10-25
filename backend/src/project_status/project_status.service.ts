@@ -20,7 +20,9 @@ export class ProjectStatusService {
     async getAllProjectStatuses() {
         const {data , error} = await supabase
         .from('project_status')
-        .select('*');
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order');
         if (error){
             throw new Error(error.message);
         }

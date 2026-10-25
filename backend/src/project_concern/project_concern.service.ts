@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateProjectConcernDto } from './dto/create_project_concern.dto';
 import { UpdateProjectConcernDto } from './dto/update_project_concern.dto';
 import { supabase } from 'src/supabase/supabase.client';
+import { encodeRow, decodeRows, idOf } from '../lookups/lookups';
 
 @Injectable()
 export class ProjectConcernService {
@@ -9,32 +10,34 @@ export class ProjectConcernService {
     private readonly table = 'project_concern';
 
     async createConcern(createProjectConcernDto: CreateProjectConcernDto, performedBy: number) {
-        const { data, error } = await supabase.from(this.table).insert([
-            {
-                project_id: createProjectConcernDto.project_id,
-                category: createProjectConcernDto.category,
-                description: createProjectConcernDto.description,
-                reported_by: performedBy,
-            },
-        ]).select()
+        const payload = await encodeRow(this.table, {
+            project_id: createProjectConcernDto.project_id,
+            category: createProjectConcernDto.category,
+            description: createProjectConcernDto.description,
+            reported_by: performedBy,
+        });
+        const { data, error } = await supabase.from(this.table).insert([payload]).select()
             .single();
         if (error) {
             throw new Error(error.message);
         }
 
+        await decodeRows(this.table, data);
         return { message: 'Concern reported successfully', data };
     }
 
     async updateConcern(id: number, updateProjectConcernDto: UpdateProjectConcernDto, performedBy: number) {
+        const payload = await encodeRow(this.table, updateProjectConcernDto);
         const { data, error } = await supabase
             .from(this.table)
-            .update(updateProjectConcernDto)
+            .update(payload)
             .eq('project_concern_id', id)
             .select()
             .single();
         if (error) {
             throw new Error(error.message);
         }
+        await decodeRows(this.table, data);
         return { message: 'Concern updated successfully', data };
     }
 
@@ -48,7 +51,7 @@ export class ProjectConcernService {
         if (error) {
             throw new Error(error.message);
         }
-        return data;
+        return decodeRows(this.table, data);
     }
 
     async getConcernsByProject(projectId: number) {
@@ -62,7 +65,7 @@ export class ProjectConcernService {
         if (error) {
             throw new Error(error.message);
         }
-        return data;
+        return decodeRows(this.table, data);
     }
 
 
@@ -78,6 +81,7 @@ export class ProjectConcernService {
             throw new Error(error.message);
         }
 
+        await decodeRows(this.table, data);
         return { message: 'Concern deleted successfully', data };
     }
 }

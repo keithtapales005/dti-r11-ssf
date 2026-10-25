@@ -7,6 +7,7 @@ import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from './types/jwt-payload';
 import { supabase } from '../supabase/supabase.client';
 import { RegisterDto } from './dto/register.dto';
+import { insertLog } from '../lookups/lookups';
 
 export interface AuthUser {
   user_id: number;
@@ -73,7 +74,7 @@ export class AuthService {
 
     const accessToken = await this.jwtService.signAsync(payload);
 
-    await supabase.from('logs').insert({
+    await insertLog({
       user_id: user.user_id,
       affected_id: user.user_id,
       action: 'LOGIN',

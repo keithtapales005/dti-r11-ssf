@@ -3,19 +3,7 @@ import {
   IsInt,
   IsOptional,
   IsNumber,
-  IsIn,
 } from 'class-validator';
-
-const ACCOMPLISHMENT_CATEGORIES = [
-  'Maintained',
-  'Transferred to Successful Cooperator',
-  'Transferred to a New Cooperator',
-  'Extension of UA for 2 years',
-  'Disposed',
-  'Fully Transferred with Terminal Report',
-];
-
-const OPERATIONAL_STATUSES = ['Fully Operational', 'Partially Operational', 'Non-Operational'];
 
 export class CreateProjectAccomplishmentDto {
     @IsInt()
@@ -26,11 +14,11 @@ export class CreateProjectAccomplishmentDto {
     fund_source?: string;
 
     @IsOptional()
-    @IsIn(ACCOMPLISHMENT_CATEGORIES)
+    @IsString()
     accomplishment_category?: string;
 
     @IsOptional()
-    @IsIn(OPERATIONAL_STATUSES)
+    @IsString()
     operational_status?: string;
 
     @IsOptional()

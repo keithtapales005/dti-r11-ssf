@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { CreateFileDto } from './dto/create_file.dto';
 import { supabase } from 'src/supabase/supabase.client';
 import { NotificationsService } from '../notifications/notifications.service';
+import { insertLog, encodeRow, decodeRows } from '../lookups/lookups';
+import { syncDocumentStatus } from '../project_document_checklist/checklist-sync';
 
 @Injectable()
 export class FilesService {
@@ -27,19 +29,19 @@ export class FilesService {
             throw new Error(uploadError.message);
         }
 
+        const payload = await encodeRow(this.table, {
+            project_id: dto.project_id,
+            created_by: performedBy,
+            file_name: dto.file_name || originalFileName,
+            file_type: mimeType,
+            file_path: storagePath,
+            file_size: fileSize,
+            document_type_id: dto.document_type_id,
+        });
+
         const { data, error } = await supabase
             .from(this.table)
-            .insert([
-                {
-                    project_id: dto.project_id,
-                    created_by: performedBy,
-                    file_name: dto.file_name || originalFileName,
-                    file_type: mimeType,
-                    file_path: storagePath,
-                    file_size: fileSize,
-                    document_type_id: dto.document_type_id,
-                },
-            ])
+            .insert([payload])
             .select()
             .single();
 
@@ -48,16 +50,18 @@ export class FilesService {
             throw new Error(error.message);
         }
 
-        await supabase.from('logs').insert({
+        await insertLog({
             user_id: performedBy,
             table_name: this.table,
             affected_id: data.file_id,
             action: 'CREATE',
         });
 
+        await syncDocumentStatus(dto.project_id, dto.document_type_id);
+
         await this.notificationsService.notifyFileUpload(data, performedBy);
 
-        return data;
+        return decodeRows(this.table, data);
     }
 
     async getFilesByProject(projectId: number) {
@@ -72,7 +76,7 @@ export class FilesService {
             throw new Error(error.message);
         }
 
-        return data;
+        return decodeRows(this.table, data);
     }
 
     async getSignedUrl(filePath: string) {
@@ -90,7 +94,7 @@ export class FilesService {
     async deleteFile(fileId: number, performedBy: number) {
         const { data: file, error: fetchError } = await supabase
             .from(this.table)
-            .select('file_path')
+            .select('file_path, project_id, document_type_id')
             .eq('file_id', fileId)
             .single();
 
@@ -108,8 +112,9 @@ export class FilesService {
         }
 
         await supabase.storage.from(this.bucket).remove([file.file_path]);
+        await syncDocumentStatus(file.project_id, file.document_type_id);
 
-        await supabase.from('logs').insert({
+        await insertLog({
             user_id: performedBy,
             table_name: this.table,
             affected_id: fileId,
@@ -131,13 +136,13 @@ export class FilesService {
             throw new Error(error.message);
         }
 
-        await supabase.from('logs').insert({
+        await insertLog({
             user_id: performedBy,
             table_name: this.table,
             affected_id: fileId,
             action: 'UPDATE',
         });
 
-        return data;
+        return decodeRows(this.table, data);
     }
 }

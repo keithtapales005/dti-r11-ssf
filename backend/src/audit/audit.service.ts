@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { supabase } from '../supabase/supabase.client';
+import { insertLog } from '../lookups/lookups';
 
 type AuditAction =
     | 'CREATE'
@@ -19,7 +19,7 @@ export class AuditService {
         action: AuditAction,
         tableName?: string,
     ) {
-        const { error } = await supabase.from('logs').insert({
+        const { error } = await insertLog({
             user_id: userId,
             table_name: tableName,
             affected_id: affectedId,

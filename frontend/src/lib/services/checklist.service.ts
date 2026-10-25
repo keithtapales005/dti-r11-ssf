@@ -28,7 +28,7 @@ export const checklistService = {
         return res.json();
     },
 
-    updateChecklistItem: async (id: string, dto: UpdateChecklistItemDto) => {
+    updateChecklistItem: async (id: number, dto: UpdateChecklistItemDto) => {
         const res = await fetch(`${API_URL}/project-document-checklist/${id}`, {
             method: "PATCH",
             credentials: "include",
@@ -43,7 +43,7 @@ export const checklistService = {
         return res.json();
     },
 
-    deleteChecklistItem: async (id: string) => {
+    deleteChecklistItem: async (id: number) => {
         const res = await fetch(`${API_URL}/project-document-checklist/${id}`, {
             method: "DELETE",
             credentials: "include",

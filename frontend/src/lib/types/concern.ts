@@ -1,7 +1,7 @@
 export interface ProjectConcern {
   project_concern_id: number;
   project_id: number;
-  category: "Challenge" | "Operational Concern" | "Grievance";
+  category: string;
   description: string;
   reported_by: number;
   created_at: string;
@@ -11,7 +11,7 @@ export interface ProjectConcern {
 
 export interface CreateProjectConcernDto {
   project_id: number;
-  category: "Challenge" | "Operational Concern" | "Grievance";
+  category: string;
   description: string;
 }
 

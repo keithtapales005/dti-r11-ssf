@@ -25,6 +25,7 @@ import { ReportsModule } from './reports/reports.module';
 import { LogsModule } from './logs/logs.module';
 import { DocumentTypeModule } from './document_type/document_type.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { LookupsModule } from './lookups/lookups.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     ReportsModule,
     LogsModule,
     DocumentTypeModule,
+    LookupsModule,
   ],
   controllers: [AppController, ProvinceController],
   providers: [AppService, ProvinceService],

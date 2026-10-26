@@ -1,10 +1,10 @@
-import { Injectable, ForbiddenException } from '@nestjs/common';
-import { Role } from '../auth/enum/role.enum';
+import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common'; import { Role } from '../auth/enum/role.enum';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { ensureChecklist } from '../project_document_checklist/checklist-sync';
 import { supabase } from 'src/supabase/supabase.client';
 
+type AuthUser = { user_id: number; role_id: number; province_id: number | null };
 @Injectable()
 export class ProjectManagementService {
 
@@ -88,7 +88,21 @@ export class ProjectManagementService {
     return { message: 'Project deleted successfully', data };
   }
 
-  async getProject(id: number) {
+  async assertCanAccessProject(projectId: number, user: AuthUser) {
+    if (user.role_id !== 2) return; // Superadmin and Guest: no province limit
+    const { data, error } = await supabase
+      .from(this.table)
+      .select('province_id')
+      .eq('project_id', projectId)
+      .is('deleted_at', null)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data || !user.province_id || data.province_id !== user.province_id) {
+      throw new NotFoundException('Project not found');
+    }
+  }
+
+  async getProject(id: number, user: AuthUser) {
     const { data, error } = await supabase
       .from(this.table)
       .select('*, project_status(status_name), province(province_name)')
@@ -97,23 +111,36 @@ export class ProjectManagementService {
       .maybeSingle();
 
     if (error) throw new Error(error.message);
+
+    if (data && user.role_id === 2 && data.province_id !== user.province_id) {
+      throw new NotFoundException('Project not found');
+    }
     return data;
   }
 
-  async getAllProjects(page: number, limit: number) {
+  async getAllProjects(page: number, limit: number, user: AuthUser) {
     const from = (page - 1) * limit;
     const to = page * limit - 1;
 
-    const { data, error, count } = await supabase
+    // Admins with no province see nothing instead of everything
+    if (user.role_id === 2 && !user.province_id) {
+      return { data: [], page, limit, total: 0, totalPages: 0 };
+    }
+
+    let query = supabase
       .from(this.table)
       .select('*, project_status(status_name), province(province_name)', { count: 'exact' })
-      .is('deleted_at', null)
+      .is('deleted_at', null);
+
+    if (user.role_id === 2) {
+      query = query.eq('province_id', user.province_id as number);
+    }
+
+    const { data, error, count } = await query
       .order('updated_at', { ascending: false })
       .range(from, to);
-    if (error) {
-      throw new Error(error.message);
-    }
+
+    if (error) throw new Error(error.message);
     return { data, page, limit, total: count ?? 0, totalPages: Math.ceil((count ?? 0) / limit) };
   }
-
 }

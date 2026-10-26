@@ -18,6 +18,17 @@ export class UsersService {
   private readonly SUPERADMIN_ROLE_ID = 1;
   private readonly ACTIVE_STATUS_ID = 1;
   private readonly REGIONAL_OFFICE_DEPARTMENT_ID = 1;
+  private readonly DEPARTMENT_PROVINCE: Record<number, number | null> = {
+    1: null, // Regional Office
+    2: null, // Assistant Regional Office
+    3: null, // Shared Service Facilities Focals
+    4: 1,    // Davao City Field Office -> Davao City
+    5: 5,    // Davao del Sur Provincial Office -> Davao del Sur
+    6: 6,    // Davao del Norte Provincial Office -> Davao del Norte
+    7: 4,    // Davao Oriental Provincial Office -> Davao Oriental
+    8: 3,    // Davao Occidental Provincial Office -> Davao Occidental
+    9: 2,    // Davao de Oro Provincial Office -> Davao de Oro
+  };
   constructor(
     private readonly notificationsService: NotificationsService,
     private readonly mailService: MailService,
@@ -63,6 +74,7 @@ export class UsersService {
         password_hash: passwordHash,
         role_id: dto.role_id,
         department_id: dto.department_id,
+        province_id: this.DEPARTMENT_PROVINCE[dto.department_id] ?? null,
         user_status_id: 1,
       },
     ]).select()
@@ -159,6 +171,9 @@ export class UsersService {
     }
 
     const updates: Record<string, unknown> = { ...rest };
+    if (deptChanging) {
+      updates.province_id = this.DEPARTMENT_PROVINCE[deptAfter] ?? null;
+    }
     if (password) {
       updates.password_hash = await this.hashPassword(password);
     }
@@ -284,18 +299,37 @@ export class UsersService {
     dto: { role_id: number; department_id: number },
     performedBy: number,
   ) {
-    const ALLOWED_APPROVAL_ROLES = [2, 3]; // Admin, Viewer only — never Superadmin
+    const ALLOWED_APPROVAL_ROLES = [1, 2, 3]; // Superadmin, Admin, Guest
 
     if (!ALLOWED_APPROVAL_ROLES.includes(dto.role_id)) {
-      throw new ForbiddenException('Cannot assign Superadmin role during approval');
+      throw new BadRequestException('Invalid role.');
     }
 
+    // Same rule as promotion through Edit
+    if (
+      dto.role_id === this.SUPERADMIN_ROLE_ID &&
+      dto.department_id !== this.REGIONAL_OFFICE_DEPARTMENT_ID
+    ) {
+      throw new BadRequestException(
+        'Only users assigned to the Regional Office can be Superadmin.',
+      );
+    }
+
+    if (dto.role_id === this.SUPERADMIN_ROLE_ID) {
+      await insertLog({
+        user_id: performedBy,
+        table_name: this.table,
+        affected_id: userId,
+        action: 'ROLE_CHANGE',
+      });
+    }
     const { data, error } = await supabase
       .from(this.table)
       .update({
         user_status_id: 1, // Active
         role_id: dto.role_id,
         department_id: dto.department_id,
+        province_id: this.DEPARTMENT_PROVINCE[dto.department_id] ?? null,
       })
       .eq('user_id', userId)
       .select()

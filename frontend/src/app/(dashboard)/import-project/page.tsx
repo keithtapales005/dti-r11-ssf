@@ -32,7 +32,6 @@ export default function ImportProjectPage() {
   const effectiveProvinceId = isSuperadmin ? provinceId : String(currentUser?.province_id ?? "");
   const [statusId, setStatusId] = useState("");
   const [yearLaunched, setYearLaunched] = useState("");
-  const [dateEstablished, setDateEstablished] = useState("");
   const [industry, setIndustry] = useState("");
   const [projectCost, setProjectCost] = useState("");
 
@@ -95,7 +94,6 @@ export default function ImportProjectPage() {
         business_name: businessName.trim(),
         project_title: projectTitle.trim(),
         year_launched: yearLaunched ? Number(yearLaunched) : undefined,
-        date_established: dateEstablished || undefined,
         industry: industry.trim() || undefined,
         project_cost: projectCost ? Number(projectCost) : undefined,
       });
@@ -198,19 +196,10 @@ export default function ImportProjectPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <InputField label="Year Launched" name="yearLaunched" placeholder="e.g. 2018" value={yearLaunched} onChange={setYearLaunched} type="number" />
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Date Established</label>
-              <input
-                type="date"
-                value={dateEstablished}
-                onChange={(e) => setDateEstablished(e.target.value)}
-                className={selectClass}
-              />
-            </div>
+            <InputField label="Industry" name="industry" placeholder="Industry" value={industry} onChange={setIndustry} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <InputField label="Industry" name="industry" placeholder="Industry" value={industry} onChange={setIndustry} />
             <InputField label="Project Cost" name="projectCost" placeholder="0.00" value={projectCost} onChange={setProjectCost} type="number" />
           </div>
         </div>

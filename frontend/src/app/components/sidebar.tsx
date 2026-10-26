@@ -21,6 +21,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCurrentUser } from "@/lib/hooks/useAuth";
 import { useMutation } from "@tanstack/react-query";
 import { useLogout } from "@/lib/hooks/useAuth";
+import { useProvinces } from "@/lib/queries/provinceQueries";
 type SidebarUser = {
   displayName?: string;
   username?: string;
@@ -148,8 +149,21 @@ export default function Sidebar({
   const [isHovering, setIsHovering] = useState(false);
   const [isProvinceExpanded, setIsProvinceExpanded] = useState(true);
   const { data: currentUser, isLoading, error } = useCurrentUser();
-  console.log("currentUser", currentUser);
   const roleId = Number(currentUser?.role_id);
+  const { data: provinceList } = useProvinces();
+
+  const ownProvinceName = (provinceList ?? []).find(
+    (p: any) => Number(p.province_id) === Number(currentUser?.province_id),
+  )?.province_name;
+
+  const normalizeName = (s?: string) => (s ?? "").trim().toLowerCase();
+
+  const visibleProvinces =
+    roleId === 2
+      ? PROVINCES.filter(
+        (p) => normalizeName(p.label) === normalizeName(ownProvinceName),
+      )
+      : PROVINCES;
   const visibleManagementItems = MANAGEMENT_ITEMS.filter(
     (item) => !item.roles || item.roles.includes(roleId),
   );
@@ -166,8 +180,8 @@ export default function Sidebar({
   const effectiveCollapsed = isCollapsed && !isHovering;
 
   const activeProvince = useMemo(
-    () => PROVINCES.some((province) => matchesPath(pathname, province.href)),
-    [pathname],
+    () => visibleProvinces.some((province) => matchesPath(pathname, province.href)),
+    [pathname, visibleProvinces],
   );
 
   const resolveItemClassName = (active: boolean) =>
@@ -265,7 +279,7 @@ export default function Sidebar({
                   id="sidebar-province-list"
                   className="mt-2 flex flex-col gap-1 border-l border-white/25 pl-4"
                 >
-                  {PROVINCES.map((province) => (
+                  {visibleProvinces.map((province) => (
                     <Link
                       key={province.label}
                       href={province.href}

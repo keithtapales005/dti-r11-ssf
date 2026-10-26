@@ -261,7 +261,30 @@ function AccountPageContent() {
     Record<string, string>
   >({});
 
-  // Toast
+  const editingAccount = useMemo(
+    () => accounts.find((a) => a.id === editingId) ?? null,
+    [accounts, editingId],
+  );
+
+  const isEditingSelf =
+    editingId !== null && editingId === String(currentUser?.user_id);
+
+  // Superadmin is offered only when promotion is allowed (Active + Regional Office),
+  // or when the account already is a Superadmin so their role still displays.
+  const modalPermissionOptions: Permission[] = useMemo(() => {
+    if (!editingId) return PERMISSION_OPTIONS;
+    const canBeSuperadmin =
+      editingAccount?.permission === "Superadmin" ||
+      (editingAccount?.access === "Active" &&
+        modalFormData.department === "Regional Office");
+    return canBeSuperadmin ? ["Superadmin", "Admin", "Guest"] : PERMISSION_OPTIONS;
+  }, [editingId, editingAccount, modalFormData.department]);
+
+  const approvePermissionOptions: Permission[] =
+    approveFormData.department === "Regional Office"
+      ? ["Superadmin", "Admin", "Guest"]
+      : PERMISSION_OPTIONS;
+
   const [toasts, setToasts] = useState<ToastProps[]>([]);
 
   const addToast = useCallback((toast: Omit<ToastProps, "id">) => {
@@ -393,14 +416,25 @@ function AccountPageContent() {
   }, []);
 
   const openSaveConfirmation = useCallback(() => {
+    const isPromotion =
+      !!editingId &&
+      modalFormData.permission === "Superadmin" &&
+      editingAccount?.permission !== "Superadmin";
+
     setSaveConfirmation({
-      title: editingId ? "Save Changes" : "Create Account",
-      message: editingId
-        ? "Are you sure you want to save these changes to this account?"
-        : "Are you sure you want to add this account?",
+      title: isPromotion
+        ? "Promote to Superadmin"
+        : editingId
+          ? "Save Changes"
+          : "Create Account",
+      message: isPromotion
+        ? `Grant ${modalFormData.username} full Superadmin access, including account management?`
+        : editingId
+          ? "Are you sure you want to save these changes to this account?"
+          : "Are you sure you want to add this account?",
     });
     setIsSaveConfirmOpen(true);
-  }, [editingId]);
+  }, [editingId, editingAccount, modalFormData.permission, modalFormData.username]);
 
   const openDeleteConfirmation = useCallback(() => {
     if (!editingId) {
@@ -457,7 +491,18 @@ function AccountPageContent() {
         }
       }
 
-      setModalFormData((prev) => ({ ...prev, [field]: newValue }));
+      setModalFormData((prev) => {
+        const next = { ...prev, [field]: newValue };
+        // Superadmin requires the Regional Office; force a re-pick instead of a 400 on save
+        if (
+          field === "department" &&
+          newValue !== "Regional Office" &&
+          prev.permission === "Superadmin"
+        ) {
+          next.permission = "";
+        }
+        return next;
+      });
       if (modalFormErrors[field]) {
         setModalFormErrors((prev) => {
           const updated = { ...prev };
@@ -653,7 +698,18 @@ function AccountPageContent() {
   // Approve / Reject submit handlers
   const handleApproveFormChange = useCallback(
     (field: string, value: string) => {
-      setApproveFormData((prev) => ({ ...prev, [field]: value }));
+      setApproveFormData((prev) => {
+        const next = { ...prev, [field]: value };
+        // Superadmin requires the Regional Office; force a re-pick instead of a 400
+        if (
+          field === "department" &&
+          value !== "Regional Office" &&
+          prev.permission === "Superadmin"
+        ) {
+          next.permission = "";
+        }
+        return next;
+      });
       if (approveFormErrors[field]) {
         setApproveFormErrors((prev) => {
           const updated = { ...prev };
@@ -664,9 +720,12 @@ function AccountPageContent() {
     },
     [approveFormErrors],
   );
-
   const handleApproveSubmit = useCallback(async () => {
     if (!approvingAccount) return;
+    if (
+      approveFormData.permission === "Superadmin" &&
+      !window.confirm(`Grant ${approvingAccount.username} full Superadmin access?`)
+    ) return;
 
     const errors: Record<string, string> = {};
     if (!approveFormData.department) errors.department = "Please select a department.";
@@ -945,7 +1004,7 @@ function AccountPageContent() {
             secondaryButtonVariant={editingId ? "red" : "white"}
             buttonLoading={modalLoading}
             buttonDisabled={modalLoading}
-            secondaryButtonDisabled={modalLoading}
+            secondaryButtonDisabled={modalLoading || isEditingSelf}
           >
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <InputField
@@ -1044,7 +1103,7 @@ function AccountPageContent() {
                 Permission <span className="text-red-600">*</span>
               </label>
               <Dropdown
-                options={PERMISSION_OPTIONS.map((perm) => ({
+                options={modalPermissionOptions.map((perm) => ({
                   id: perm,
                   label: perm,
                   value: perm,
@@ -1054,7 +1113,7 @@ function AccountPageContent() {
                 onSelect={(opt) =>
                   handleModalFormChange("permission", String(opt.value))
                 }
-                disabled={modalLoading}
+                disabled={modalLoading || isEditingSelf}
                 error={modalFormErrors.permission}
                 variant="secondary"
               />
@@ -1080,7 +1139,7 @@ function AccountPageContent() {
                     onChange={(e) =>
                       handleModalFormChange("access", e.target.value)
                     }
-                    disabled={modalLoading}
+                    disabled={modalLoading || isEditingSelf}
                     className="w-4 h-4"
                     style={{
                       accentColor: "#182286",
@@ -1101,7 +1160,7 @@ function AccountPageContent() {
                     onChange={(e) =>
                       handleModalFormChange("access", e.target.value)
                     }
-                    disabled={modalLoading}
+                    disabled={modalLoading || isEditingSelf}
                     className="w-4 h-4"
                     style={{
                       accentColor: "#182286",
@@ -1175,7 +1234,7 @@ function AccountPageContent() {
                 Permission <span className="text-red-600">*</span>
               </label>
               <Dropdown
-                options={PERMISSION_OPTIONS.map((perm) => ({
+                options={approvePermissionOptions.map((perm) => ({
                   id: perm,
                   label: perm,
                   value: perm,

@@ -72,7 +72,6 @@ const PRIMARY_ITEMS: SidebarItem[] = [
 
 const MANAGEMENT_ITEMS: SidebarItem[] = [
   { label: "Accounts", href: "/account-page", icon: FiUsers, roles: [1] },
-  { label: "Accounts", href: "/account-page", icon: FiUsers, roles: [1, 2] },
   { label: "Manage Lists", href: "/manage-lists", icon: FiSliders, roles: [1] },
 ];
 

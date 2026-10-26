@@ -269,7 +269,7 @@ export default function ProjectPage() {
                   name="province"
                   placeholder="Province"
                   value={lockedProvinceName}
-                  onChange={() => {}}
+                  onChange={() => { }}
                   disabled
                 />
               )}

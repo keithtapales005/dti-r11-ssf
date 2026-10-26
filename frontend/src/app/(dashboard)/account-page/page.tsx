@@ -23,6 +23,7 @@ import RoleGuard from "../../components/role-guard";
 import { isForbiddenError } from "../../../lib/utils/errors";
 
 const ROLE_MAP = {
+  Superadmin: 1,
   Admin: 2,
   Guest: 3,
 } as const;
@@ -42,7 +43,7 @@ const DEPARTMENT_MAP = {
 // ------------------------------------------------------------------
 // Types
 // ------------------------------------------------------------------
-type Permission = "Guest" | "Admin";
+type Permission = "Superadmin" | "Admin" | "Guest" | "Unknown";
 type AccessStatus = "Active" | "Blocked" | "Deleted" | "Pending Verification" | "Unknown";
 
 type SaveConfirmation = {
@@ -136,8 +137,9 @@ function validateAccountForm(
 // ------------------------------------------------------------------
 const PERMISSION_FILTER_OPTIONS: DropdownOption[] = [
   { id: "all", label: "All Permissions", value: "" },
-  { id: "guest", label: "Guest", value: "Guest" },
+  { id: "superadmin", label: "Superadmin", value: "Superadmin" },
   { id: "admin", label: "Admin", value: "Admin" },
+  { id: "guest", label: "Guest", value: "Guest" },
 ];
 
 const ACCESS_FILTER_OPTIONS: DropdownOption[] = [
@@ -189,7 +191,7 @@ function AccountPageContent() {
   const approveUserMutation = useApproveUser();
   const rejectUserMutation = useRejectUser();
 
-  const roleMap: Record<number, Permission> = { 2: "Admin", 3: "Guest" };
+  const roleMap: Record<number, Permission> = { 1: "Superadmin", 2: "Admin", 3: "Guest" };
 
   const accounts: AccountRecord[] = useMemo(() => {
     return rawUsers
@@ -199,7 +201,7 @@ function AccountPageContent() {
         lastName: u.last_name ?? "",
         username: u.username ?? "",
         department: u.department?.department_name ?? "Unassigned",
-        permission: roleMap[u.role_id] ?? "Guest",
+        permission: roleMap[Number(u.role_id)] ?? "Unknown",
         isOnline: false,
         access: (u.user_status?.user_status_name as AccessStatus) ?? "Unknown",
       }))
@@ -700,7 +702,7 @@ function AccountPageContent() {
     }
   }, [approvingAccount, approveFormData, approveUserMutation, addToast, closeApproveModal, resetPagination]);
 
-    const handleRejectConfirm = useCallback(async () => {
+  const handleRejectConfirm = useCallback(async () => {
     if (!rejectingAccount) return;
 
     const reason = rejectReason.trim();

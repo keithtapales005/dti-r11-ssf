@@ -10,7 +10,7 @@ export class ProjectManagementService {
 
   private readonly table = 'project';
 
-    async createProject(createProjectDto: CreateProjectDto, performedBy: number) {
+  async createProject(createProjectDto: CreateProjectDto, performedBy: number) {
     const { data: user, error: userError } = await supabase
       .from('users')
       .select('province_id, role(role_name)')
@@ -106,7 +106,9 @@ export class ProjectManagementService {
 
     const { data, error, count } = await supabase
       .from(this.table)
-      .select('*', { count: 'exact' })
+      .select('*, project_status(status_name), province(province_name)', { count: 'exact' })
+      .is('deleted_at', null)
+      .order('updated_at', { ascending: false })
       .range(from, to);
     if (error) {
       throw new Error(error.message);

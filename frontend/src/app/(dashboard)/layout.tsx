@@ -5,8 +5,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <>
       <Sidebar overlay />
+      <main className="min-h-screen pl-[120px]">{children}</main>
       <NotificationBell />
-      {children}
     </>
   );
 }

@@ -17,18 +17,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     super({
-  jwtFromRequest: ExtractJwt.fromExtractors([
-    (request) => {
-      if (!request?.cookies) {
-        return null;
-      }
+      jwtFromRequest: ExtractJwt.fromExtractors([
+        (request) => {
+          if (!request?.cookies) {
+            return null;
+          }
 
-      return request.cookies.access_token;
-    },
-  ]),
-  ignoreExpiration: false,
-  secretOrKey: secret,
-});
+          return request.cookies.access_token;
+        },
+      ]),
+      ignoreExpiration: false,
+      secretOrKey: secret,
+    });
   }
 
   async validate(payload: JwtPayload) {
@@ -36,6 +36,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (!user) {
       throw new UnauthorizedException('Invalid token');
+    }
+
+    if (user.user_status_id !== 1) {
+      throw new UnauthorizedException('Account is not active');
     }
 
     return {
@@ -46,6 +50,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       role_id: user.role_id,
       department_id: user.department_id,
       province_id: user.province_id,
+      user_status_id: user.user_status_id,
     };
   }
 }

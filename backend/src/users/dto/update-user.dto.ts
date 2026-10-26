@@ -4,9 +4,12 @@ import {
   MaxLength,
   IsInt,
   IsNotEmpty,
+  IsIn,
+  Min,
   IsOptional
 } from 'class-validator';
 import { USER_VALIDATION } from '../constants/user-validation.constants';
+
 export class UpdateUserDto {
   @IsOptional()
   @IsNotEmpty()
@@ -37,13 +40,18 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsInt()
-  role_id!: number;
+  @IsIn([1, 2, 3]) // Superadmin, Admin, Guest
+  role_id?: number;
 
   @IsOptional()
   @IsInt()
-  department_id!: number;
+  @Min(1)
+  department_id?: number;
 
   @IsOptional()
   @IsInt()
-  user_status_id!: number;
+  @IsIn([1, 2]) // Active, Blocked. Delete goes through DELETE /users/:id so the anonymization runs
+  user_status_id?: number;
+
+
 }

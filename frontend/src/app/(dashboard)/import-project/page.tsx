@@ -157,7 +157,10 @@ export default function ImportProjectPage() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-linear-to-b from-[#C8DBFD] to-[#F5F8FC] p-6">
+    <div
+      className="w-full min-h-screen bg-linear-to-b from-[#C8DBFD] to-[#F5F8FC] py-6 pr-6 pl-36"
+      style={{ paddingLeft: "140px" }}
+    >
       <div className="max-w-[1000px] mx-auto space-y-6">
         <h1 className="text-2xl font-bold text-[#182286]">Import Finished Project</h1>
 
@@ -241,9 +244,8 @@ export default function ImportProjectPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-gray-800">{type.name}</span>
                       <span
-                        className={`text-xs px-2 py-0.5 rounded-full ${
-                          type.is_required ? "bg-red-50 text-red-700" : "bg-gray-100 text-gray-600"
-                        }`}
+                        className={`text-xs px-2 py-0.5 rounded-full ${type.is_required ? "bg-red-50 text-red-700" : "bg-gray-100 text-gray-600"
+                          }`}
                       >
                         {type.is_required ? "Required" : "Optional"}
                       </span>

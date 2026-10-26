@@ -1,10 +1,4 @@
-import {
-  IsString,
-  MinLength,
-  MaxLength,
-  IsInt,
-  IsNotEmpty,
-} from 'class-validator';
+import { IsString, MinLength, MaxLength, IsInt, IsNotEmpty, IsIn, Min, Matches } from 'class-validator';
 import { USER_VALIDATION } from '../constants/user-validation.constants';
 export class CreateUserDto {
   @IsNotEmpty()
@@ -23,6 +17,9 @@ export class CreateUserDto {
   @IsString()
   @MinLength(USER_VALIDATION.USERNAME_MIN_LENGTH)
   @MaxLength(USER_VALIDATION.USERNAME_MAX_LENGTH)
+  @Matches(/^[A-Za-z0-9._-]+$/, {
+    message: 'Username may contain letters, numbers, dots, underscores, and hyphens only',
+  })
   username!: string;
 
   @IsNotEmpty()

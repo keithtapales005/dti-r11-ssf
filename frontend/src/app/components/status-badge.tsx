@@ -3,17 +3,7 @@
 import React from "react";
 
 export interface StatusBadgeProps {
-  status:
-    | "Ongoing"
-    | "Currently Established"
-    | "Established - Operational"
-    | "Established - Partially Operational"
-    | "Established - Non-Operational"
-    | "Extended"
-    | "Transferred"
-    | "Fully Transferred"
-    | "Disposed"
-    | "For Approval";
+  status: string;
   isLoading?: boolean;
   variant?: "small" | "large";
 }
@@ -66,7 +56,7 @@ export default function StatusBadge({
   isLoading = false,
   variant = "small",
 }: StatusBadgeProps) {
-  const config = STATUS_CONFIG[status] || {
+  const config = (STATUS_CONFIG as Record<string, { backgroundColor: string; color: string }>)[status] || {
     backgroundColor: "#E5E7EB", // Light gray placeholder
     color: "#4B5563",           // Gray typography text
   };

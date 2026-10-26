@@ -6,6 +6,7 @@ import {
   Patch,
   Delete,
   Param,
+  ParseIntPipe,
   UseGuards,
 } from '@nestjs/common';
 import { RejectUserDto } from './dto/reject-user.dto';
@@ -36,7 +37,7 @@ export class UsersController {
   @Roles(Role.SUPERADMIN)
   @Patch(':id')
   async editUser(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateUserDto,
     @CurrentUser('user_id') userId: number,
   ): Promise<any> {
@@ -52,7 +53,7 @@ export class UsersController {
   @Roles(Role.SUPERADMIN)
   @Patch(':id/approve')
   async approveUser(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() dto: ApproveUserDto,
     @CurrentUser('user_id') userId: number,
   ) {
@@ -62,7 +63,7 @@ export class UsersController {
   @Roles(Role.SUPERADMIN)
   @Patch(':id/reject')
   async rejectUser(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() dto: RejectUserDto,
     @CurrentUser('user_id') userId: number,
   ) {
@@ -72,12 +73,11 @@ export class UsersController {
   @Roles(Role.SUPERADMIN)
   @Delete(':id')
   async deleteUser(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @CurrentUser('user_id') userId: number,
   ) {
     return this.usersService.deleteUser(id, userId);
   }
-
 
   @Get('check-username/:username')
   async checkUsername(@Param('username') username: string) {
@@ -89,10 +89,10 @@ export class UsersController {
   async getAllUsers() {
     return this.usersService.getAllUsers();
   }
-  @Roles(Role.SUPERADMIN, Role.ADMIN)
 
+  @Roles(Role.SUPERADMIN, Role.ADMIN)
   @Get(':id')
-  async getUser(@Param('id') id: number) {
+  async getUser(@Param('id', ParseIntPipe) id: number) {
     return this.usersService.getUser(id);
   }
 }

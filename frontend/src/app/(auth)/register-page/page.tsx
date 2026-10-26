@@ -66,9 +66,9 @@ export default function RegisterPage() {
         },
     });
 
-  const handleSubmit = async () => {
-    if (!firstName || !lastName || !username || !email || !provinceId || !password || !confirmPassword) {
-      addToast({
+    const handleSubmit = async () => {
+        if (!firstName || !lastName || !username || !email || !provinceId || !password || !confirmPassword) {
+            addToast({
                 type: "warning",
                 title: "Missing Fields",
                 description: "All fields are required.",
@@ -93,7 +93,7 @@ export default function RegisterPage() {
             username,
             password,
             province_id: provinceId,
-            email: email.trim(),
+            email: email.trim().toLowerCase(),
         });
     };
 
@@ -232,7 +232,7 @@ export default function RegisterPage() {
                             label="Email"
                             name="email"
                             placeholder="Enter Email Address"
-                            type="text"
+                            type="email"
                             value={email}
                             onChange={setEmail}
                             required

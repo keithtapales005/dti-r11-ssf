@@ -14,16 +14,16 @@ export interface ProjectCardProps {
   projectTitle: string;
   filesCount: number;
   status:
-    | "Approved"
-    | "Established"
-    | "Operational"
-    | "Partially Operational"
-    | "Non-Operational"
-    | "Extended"
-    | "Transferred"
-    | "Fully Transferred"
-    | "Disposed"
-    | "No Status";
+  | "Approved"
+  | "Established"
+  | "Operational"
+  | "Partially Operational"
+  | "Non-Operational"
+  | "Extended"
+  | "Transferred"
+  | "Fully Transferred"
+  | "Disposed"
+  | "No Status";
   onViewFiles?: () => void;
 }
 
@@ -64,7 +64,7 @@ export const ProjectCard: React.FC<ProjectCardProps> = ({
               {`${year}-${region}-${province}-${number}`}
             </div>
 
-            <StatusBadge status={status} size="default" />
+            <StatusBadge status={status} />
           </div>
 
           <div className="flex flex-col gap-1">

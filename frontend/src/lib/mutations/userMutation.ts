@@ -5,40 +5,40 @@ import { CreateUserDto, UpdateUserDto } from "../types/user";
 
 // CREATE USER
 export const useCreateUser = () => {
-  const queryClient = useQueryClient();
+    const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: (dto: CreateUserDto) => userService.createUser(dto),
+    return useMutation({
+        mutationFn: (dto: CreateUserDto) => userService.createUser(dto),
 
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: userKeys.all,
-      });
-    },
-  });
+        onSuccess: () => {
+            queryClient.invalidateQueries({
+                queryKey: userKeys.all,
+            });
+        },
+    });
 };
 
 // EDIT USER
 export const useEditUser = () => {
-  const queryClient = useQueryClient();
+    const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: ({
-      id,
-      dto,
-    }: {
-      id: number;
-      dto: UpdateUserDto;
-    }) => userService.editUser(id, dto),
+    return useMutation({
+        mutationFn: ({
+            id,
+            dto,
+        }: {
+            id: number;
+            dto: UpdateUserDto;
+        }) => userService.editUser(id, dto),
 
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: userKeys.all,
-      });
+        onSuccess: (_, variables) => {
+            queryClient.invalidateQueries({
+                queryKey: userKeys.all,
+            });
 
-      queryClient.invalidateQueries({
-        queryKey: userKeys.detail(variables.id),
-      });
-    },
-  });
+            queryClient.invalidateQueries({
+                queryKey: userKeys.detail(variables.id),
+            });
+        },
+    });
 };

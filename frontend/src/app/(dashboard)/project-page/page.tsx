@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
 import SearchBar from "@/app/components/search-bar";
@@ -21,7 +21,7 @@ import { useCurrentUser } from "@/lib/hooks/useAuth";
 import { usePermissions } from "@/lib/hooks/usePermissions";
 import { isForbiddenError } from "@/lib/utils/errors";
 
-export default function ProjectPage() {
+function ProjectPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const provinceName = searchParams.get("province") || "Davao City";
@@ -320,5 +320,16 @@ export default function ProjectPage() {
 
       <ToastContainer toasts={toasts} position="top-right" onRemoveToast={removeToast} />
     </>
+  );
+}
+export default function ProjectPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-8 text-center text-gray-500">Loading projects...</div>
+      }
+    >
+      <ProjectPageContent />
+    </Suspense>
   );
 }

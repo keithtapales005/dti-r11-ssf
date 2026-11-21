@@ -25,6 +25,7 @@ import { useChecklistByProject } from "@/lib/queries/checklistQueries";
 import { useFilesByProject } from "@/lib/queries/fileQueries";
 import { useUploadFile, useDeleteFile } from "@/lib/mutations/fileMutation";
 import { useCreateChecklistItem, useUpdateChecklistItem, useDeleteChecklistItem } from "@/lib/mutations/checklistMutation";
+import { Suspense } from "react";
 
 // ------------------------------------------------------------------
 // TYPES
@@ -47,16 +48,16 @@ interface ProjectDetails {
   businessName: string;
   projectTitle: string;
   status:
-    | "Approved"
-    | "Established"
-    | "Operational"
-    | "Partially Operational"
-    | "Non-Operational"
-    | "Extended"
-    | "Transferred"
-    | "Fully Transferred"
-    | "Disposed"
-    | "No Status";
+  | "Approved"
+  | "Established"
+  | "Operational"
+  | "Partially Operational"
+  | "Non-Operational"
+  | "Extended"
+  | "Transferred"
+  | "Fully Transferred"
+  | "Disposed"
+  | "No Status";
   filesCount: number;
   yearLaunched?: number | null;
   dateEstablished?: string | null;
@@ -266,7 +267,7 @@ async function simulateFileDelete(): Promise<void> {
 // MAIN COMPONENT
 // ------------------------------------------------------------------
 
-export default function FilePage() {
+function FilePageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const projectId = Number(searchParams.get("projectId"));
@@ -1020,8 +1021,8 @@ export default function FilePage() {
                               className="text-xs font-semibold rounded-md border border-gray-200 px-2 py-1 outline-none text-black"
                             >
                               {statusOptionNames(checklistStatuses, item.status).map((n) => (
-<option key={n} value={n}>{n}</option>
-))}
+                                <option key={n} value={n}>{n}</option>
+                              ))}
                             </select>
                           ) : (
                             <span className="text-xs font-semibold px-2 py-1 rounded-md bg-gray-100 text-black">
@@ -1162,7 +1163,7 @@ export default function FilePage() {
                         </p>
                       </div>
                       <div className="col-span-1 flex items-center justify-center gap-2 pr-2">
-                        
+
 
                         {userRole === "Admin" && (
                           <button
@@ -1350,5 +1351,18 @@ export default function FilePage() {
         }
       />
     </div>
+  );
+}
+export default function FilePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#F5F8FC]">
+          <p className="text-[#6D7380]">Loading...</p>
+        </div>
+      }
+    >
+      <FilePageContent />
+    </Suspense>
   );
 }
